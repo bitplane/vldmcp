@@ -1,12 +1,18 @@
 """Server management commands for vldmcp."""
 
 import os
+import shutil
 import subprocess
 from pathlib import Path
 
 import click
 
 from .. import __version__
+
+# Get the local repository path
+import vldmcp
+
+LOCAL_REPO = Path(vldmcp.__file__).parent.parent
 
 
 @click.group()
@@ -51,6 +57,14 @@ def install(prefix):
                 # just commit (main/master branch)
                 checkout_ref = git_ref
 
+        # Use local repo if it exists, otherwise GitHub
+        if (LOCAL_REPO / ".git").exists():
+            source_repo = str(LOCAL_REPO)
+            click.echo(f"Using local repository at {source_repo}")
+        else:
+            source_repo = "https://github.com/bitplane/vldmcp.git"
+            click.echo("Using GitHub repository")
+
         if repo_dir.exists():
             click.echo("Updating existing repository...")
             subprocess.run(["git", "fetch", "--all"], cwd=repo_dir, check=True)
@@ -60,7 +74,7 @@ def install(prefix):
             click.echo(f"Repository updated to {checkout_ref}")
         else:
             click.echo("Cloning vldmcp repository...")
-            subprocess.run(["git", "clone", "https://github.com/bitplane/vldmcp.git", str(repo_dir)], check=True)
+            subprocess.run(["git", "clone", source_repo, str(repo_dir)], check=True)
             subprocess.run(
                 ["git", "-c", "advice.detachedHead=false", "checkout", checkout_ref], cwd=repo_dir, check=True
             )
@@ -118,7 +132,13 @@ CMD ["vldmcp"]
     help="Installation prefix (default: ~/.local)",
     type=click.Path(),
 )
-def uninstall(prefix):
+@click.option(
+    "--yes",
+    "-y",
+    is_flag=True,
+    help="Skip confirmation prompt",
+)
+def uninstall(prefix, yes):
     """Uninstall the vldmcp server and remove all data."""
     prefix_path = Path(prefix)
     vldmcp_dir = prefix_path / "vldmcp"
@@ -127,9 +147,8 @@ def uninstall(prefix):
         click.echo("No vldmcp installation found.")
         return
 
-    click.confirm(f"This will remove {vldmcp_dir} and all its contents. Continue?", abort=True)
-
-    import shutil
+    if not yes:
+        click.confirm(f"This will remove {vldmcp_dir} and all its contents. Continue?", abort=True)
 
     shutil.rmtree(vldmcp_dir)
     click.echo("Uninstallation complete!")

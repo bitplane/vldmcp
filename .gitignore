@@ -6,3 +6,6 @@ dist
 coverage.json
 site
 docs/pydoc
+
+# used for batching up agent operations
+todo.md
