@@ -1,6 +1,6 @@
 [project]
-name = "dmcp"
-description = "A distributed (FoaF) MCP server using veilid and docker+udocker"
+name = "vldmcp"
+description = "A distributed (FoaF) MCP server using veilid and podman"
 version = "0.0.1"
 authors = [
     { name = "Gareth Davidson", email = "gaz@bitplane.net" }
@@ -8,8 +8,12 @@ authors = [
 readme = "README.md"
 requires-python = ">=3.10"
 
-dependencies = [
+[project.urls]
+Homepage = "https://bitplane.net/dev/python/vldmcp"
+Repository = "https://github.com/bitplane/vldmcp"
 
+dependencies = [
+    "velid"
 ]
 
 [project.optional-dependencies]

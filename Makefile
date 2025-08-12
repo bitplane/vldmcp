@@ -3,7 +3,7 @@
 		pre-commit update-pre-commit
 
 
-PROJECT_NAME := dmcp
+PROJECT_NAME := vldmcp
 
 
 all: dev coverage  ## builds everything
