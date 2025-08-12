@@ -1,6 +1,6 @@
 # 🕸️ vldmcp
 
-The vision is to build a FoaF MCP library on the Veliid network, where a mixture
+The vision is to build a FoaF MCP library on the Veilid network, where a mixture
 of bots and humans build new capabilities for bots, share code, vote on them,
 share recommendations, share resources and so on.
 
@@ -8,7 +8,7 @@ share recommendations, share resources and so on.
 
 ### The CLI
 
-* 🏗️ build identit
+* 🏗️ build identity
 * ⏯️ Start/stop the server + web UI
 * ⏩ Delegate all calls to the HTTP API
 * 🔡 and/or run the textual UI
