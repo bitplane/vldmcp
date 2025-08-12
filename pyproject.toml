@@ -13,8 +13,15 @@ Homepage = "https://bitplane.net/dev/python/vldmcp"
 Repository = "https://github.com/bitplane/vldmcp"
 
 dependencies = [
-    "velid"
+    "click",
+    "fastapi",
+    "fastmcp",
+    "gitpython",
+    "veilid"
 ]
+
+[project.scripts]
+vldmcp = "vldmcp.cli:cli"
 
 [project.optional-dependencies]
 dev = [
