@@ -42,12 +42,13 @@ introduction handshake. Veilid -> HTTP for most things.
 Simple TUI in Textual, served over Textual Web. Clicking stuff in the UI just
 makes web service calls.
 
-### Services
+### Service manifest
 
 Services are just git repos that we clone from (can we add a transport plugin
 to git?), build in podman and spin them up. Their port gets added to the router.
 
-Code ownership is verified via commit sigs.
+Code ownership is verified via commit sigs. Veilid added to as a way to sign
+code.
 
 Manifest file in the root of the repo (JSON?) adds permissions which must be
 verified. For example "r/w this path in the container" or "read this path on the
