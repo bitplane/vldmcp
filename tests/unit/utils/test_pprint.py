@@ -1,6 +1,7 @@
 """Tests for pprint utility."""
 
-from vldmcp.util.pprint import _format_dict
+import pytest
+from vldmcp.util.pprint import _format_dict, _format_value, pprint_dict, pprint_size
 
 
 def test_simple_dict():
@@ -61,3 +62,35 @@ def test_mixed_nesting():
     obj = [{"a": {"b": 1}}, {"c": [2, 3]}, {"d": {"e": {"f": [4, 5, 6]}}}]
     result = _format_dict(obj)
     assert result == ["a.b: 1", "c: 2, 3", "d.e.f: 4, 5, 6"]
+
+
+@pytest.mark.parametrize(
+    "size, expected",
+    [
+        (0, "0B"),
+        (1023, "1023.0B"),
+        (1024, "1.0K"),
+        (1024**2, "1.0M"),
+        (1024**3, "1.0G"),
+        (1024**4, "1.0T"),
+        (1024**5, "1.0P"),
+        (1024**6, "1024.0P"),
+    ],
+)
+def test_pprint_size(size, expected):
+    assert pprint_size(size) == expected
+
+
+def test_pprint_dict(capsys):
+    obj = {"a": 1, "b": {"c": 2}}
+    pprint_dict(obj)
+    captured = capsys.readouterr()
+    assert captured.out == "a: 1\nb.c: 2\n"
+
+
+def test_format_value_string():
+    assert _format_value("hello") == "hello"
+
+
+def test_format_value_int_small():
+    assert _format_value(123) == "123"
