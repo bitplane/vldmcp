@@ -55,3 +55,49 @@ verified. For example "r/w this path in the container" or "read this path on the
 host machine", "access the GPU" etc.
 
 Stats measured for quota.
+
+## Directory Structure
+
+vldmcp follows the XDG Base Directory Specification for organizing its files:
+
+### User Identity Key (Never in containers)
+- **Path**: `$XDG_DATA_HOME/vldmcp/keys/user.key` (default: `~/.local/share/vldmcp/keys/user.key`)
+- **Permissions**: dir `0700`, file `0600`
+- **Description**: Your cryptographic identity key - never expose this to containers or services
+
+### Node Instance Keys
+- **Path**: `$XDG_STATE_HOME/vldmcp/nodes/<node-id>/` (default: `~/.local/state/vldmcp/nodes/<node-id>/`)
+- **Permissions**: dir `0700`, key file `0600`
+- **Description**: Per-node instance keys for server authentication
+
+### Configuration
+- **User**: `$XDG_CONFIG_HOME/vldmcp/` (default: `~/.config/vldmcp/`)
+- **System**: `/etc/vldmcp/` (system-wide overrides)
+- **Description**: Configuration files, systemd service files, container overrides
+
+### Cache (Can be safely deleted)
+- **Path**: `$XDG_CACHE_HOME/vldmcp/` (default: `~/.cache/vldmcp/`)
+- **Contents**: Downloaded git repositories (`src/`), build artifacts (`build/`)
+- **Description**: Temporary data that can be regenerated
+
+### Application Data
+- **Path**: `$XDG_DATA_HOME/vldmcp/install/` (default: `~/.local/share/vldmcp/install/`)
+- **Description**: Container Dockerfiles, base images, templates
+
+### Runtime Data
+- **Path**: `$XDG_RUNTIME_DIR/vldmcp/` (default: `/tmp/vldmcp-$USER/`)
+- **Permissions**: `0700`
+- **Description**: PID files, Unix sockets, temporary runtime state
+
+### Container Mount Points
+
+When running in container mode, the following directories are mounted:
+
+```bash
+-v $XDG_STATE_HOME/vldmcp:/var/lib/vldmcp:rw      # Node state
+-v $XDG_CACHE_HOME/vldmcp:/var/cache/vldmcp:rw    # Cache
+-v $XDG_CONFIG_HOME/vldmcp:/etc/vldmcp:ro         # Config (read-only)
+-v $XDG_RUNTIME_DIR/vldmcp:/run/vldmcp:rw         # Runtime
+```
+
+**Note**: The user identity key is never mounted into containers for security reasons.
