@@ -254,7 +254,7 @@ WORKDIR /app
 RUN pip install -e .
 
 # Version: {version}
-CMD ["vldmcp"]
+CMD ["vldmcpd"]
 """
         (base_dir / "Dockerfile").write_text(dockerfile_content)
 
@@ -275,7 +275,7 @@ WORKDIR /app
 RUN pip install vldmcp{f'=={version_spec}' if version_spec else ''}
 
 # Version: {version}
-CMD ["vldmcp"]
+CMD ["vldmcpd"]
 """
         (base_dir / "Dockerfile").write_text(dockerfile_content)
 

@@ -22,6 +22,7 @@ dependencies = [
 
 [project.scripts]
 vldmcp = "vldmcp.cli:cli"
+vldmcpd = "vldmcp.server:main"
 
 [project.optional-dependencies]
 dev = [

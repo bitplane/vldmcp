@@ -46,6 +46,7 @@ def test_install_creates_pip_dockerfile_for_release_version(tmp_path, monkeypatc
     dockerfile = (paths.install_dir() / "base" / "Dockerfile").read_text()
     assert "pip install vldmcp==1.2.3" in dockerfile
     assert "FROM python:3.10-slim" in dockerfile
+    assert 'CMD ["vldmcpd"]' in dockerfile
 
 
 def test_install_clones_from_local_repo_if_available(tmp_path, monkeypatch):
@@ -86,6 +87,7 @@ def test_install_clones_from_local_repo_if_available(tmp_path, monkeypatch):
     dockerfile = (paths.install_dir() / "base" / "Dockerfile").read_text()
     assert "COPY repo /app" in dockerfile
     assert "pip install -e ." in dockerfile
+    assert 'CMD ["vldmcpd"]' in dockerfile
 
 
 def test_install_updates_existing_repo(tmp_path, monkeypatch):
@@ -153,3 +155,4 @@ def test_install_handles_pypi_version(tmp_path, monkeypatch):
     assert "pip install vldmcp==1.2.3" in dockerfile
     assert "COPY repo" not in dockerfile
     assert "git clone" not in dockerfile
+    assert 'CMD ["vldmcpd"]' in dockerfile
