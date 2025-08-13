@@ -23,8 +23,19 @@ def server():
     default="guess",
     help="Runtime to use for deployment (default: auto-detect)",
 )
-def install(runtime):
+@click.option(
+    "--recover",
+    is_flag=True,
+    help="Recover from existing seed phrase",
+)
+@click.option(
+    "--show-seed",
+    is_flag=True,
+    help="Display seed phrase after generating new identity",
+)
+def install(runtime, recover, show_seed):
     """Install base assets and prepare runtime."""
+    from .. import crypto
 
     click.echo("Setting up vldmcp...")
 
@@ -32,6 +43,47 @@ def install(runtime):
     if runtime != "guess":
         click.echo(f"Using {runtime} runtime")
         set_runtime_type(runtime)
+
+    # Handle seed phrase recovery or generation
+    user_key_path = paths.user_key_path()
+
+    if recover:
+        # Recovery mode - prompt for seed phrase
+        click.echo("\n🔑 Identity Recovery")
+        click.echo("Enter your 24-word seed phrase (space-separated):")
+        mnemonic = click.prompt("Seed phrase", hide_input=True, confirmation_prompt=True)
+
+        # Validate and recover key
+        try:
+            if not crypto.is_valid_mnemonic(mnemonic):
+                click.echo("❌ Invalid seed phrase. Please check your words and try again.")
+                raise SystemExit(1)
+
+            key = crypto.key_from_mnemonic(mnemonic)
+            crypto.save_key(key, user_key_path)
+            click.echo("✅ Identity recovered successfully!")
+
+        except ValueError as e:
+            click.echo(f"❌ Recovery failed: {e}")
+            raise SystemExit(1)
+
+    elif not user_key_path.exists():
+        # New installation - generate new identity
+        click.echo("\n🔑 Generating new identity...")
+        mnemonic, key = crypto.generate_mnemonic_and_key()
+        crypto.save_key(key, user_key_path)
+
+        if show_seed:
+            click.echo("\n⚠️  IMPORTANT: Write down your seed phrase!")
+            click.echo("This is the ONLY way to recover your identity:\n")
+            click.echo(f"  {mnemonic}\n")
+            click.echo("Keep this phrase secure and never share it!")
+            click.confirm("\nHave you written down your seed phrase?", abort=True)
+        else:
+            click.echo("✅ New identity created (use --show-seed to display recovery phrase)")
+    else:
+        # Existing installation
+        click.echo("✅ Using existing identity")
 
     runtime = get_runtime()
     if runtime.deploy():
@@ -168,6 +220,41 @@ def stop():
         click.echo("Server stopped!")
     else:
         click.echo("No server running or failed to stop")
+        raise SystemExit(1)
+
+
+@server.command()
+def export_seed():
+    """Export the seed phrase for your identity."""
+    from .. import crypto
+
+    user_key_path = paths.user_key_path()
+
+    if not user_key_path.exists():
+        click.echo("❌ No identity found. Run 'vldmcp server install' first.")
+        raise SystemExit(1)
+
+    click.echo("⚠️  This will display your seed phrase.")
+    click.echo("Make sure no one is looking at your screen!")
+
+    if not click.confirm("\nContinue?"):
+        return
+
+    try:
+        key = crypto.load_key(user_key_path)
+        if not key:
+            click.echo("❌ Failed to load identity key.")
+            raise SystemExit(1)
+
+        mnemonic = crypto.mnemonic_from_key(key)
+
+        click.echo("\n🔑 Your seed phrase (24 words):\n")
+        click.echo(f"  {mnemonic}\n")
+        click.echo("⚠️  Keep this phrase secure and never share it!")
+        click.echo("This is the ONLY way to recover your identity.")
+
+    except Exception as e:
+        click.echo(f"❌ Failed to export seed phrase: {e}")
         raise SystemExit(1)
 
 

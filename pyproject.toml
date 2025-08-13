@@ -17,7 +17,8 @@ dependencies = [
     "pydantic",
     "pydantic-settings",
     "tomli",
-    "veilid"
+    "veilid",
+    "mnemonic"
 ]
 
 [project.optional-dependencies]
@@ -28,7 +29,8 @@ dev = [
     "pytest-cov",
     "build",
     "twine",
-    "ruff"
+    "ruff",
+    "pynacl"
 ]
 
 [project.urls]
