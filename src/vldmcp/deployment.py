@@ -12,8 +12,8 @@ from . import __version__
 from . import paths
 from . import crypto
 from .models.disk_usage import DiskUsage
-from .runtime_detection import get_runtime
-from .runtime import NativeBackend
+from .runtime import get_runtime, NativeBackend
+from .config import get_config
 
 
 class Deployment:
@@ -141,6 +141,9 @@ CMD ["vldmcpd"]
             if not self.build():
                 return None
 
+            # Get config for ports and other settings
+            config = get_config()
+
             # Create mount mappings
             mounts = {
                 str(paths.state_dir()): "/var/lib/vldmcp:rw",
@@ -149,8 +152,13 @@ CMD ["vldmcpd"]
                 str(paths.runtime_dir()): "/run/vldmcp:rw",
             }
 
+            # Get ports from config (for container runtimes)
+            ports = []
+            if hasattr(config.runtime, "ports"):
+                ports = config.runtime.ports
+
             # Start with backend
-            server_id = self.backend.start(mounts, ["8080:8080", "8000:8000"])
+            server_id = self.backend.start(mounts, ports)
 
         # Write PID file
         pid_file.parent.mkdir(parents=True, exist_ok=True)

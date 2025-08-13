@@ -2,10 +2,10 @@
 
 import subprocess
 
-from . import __version__
-from .config import get_config, set_runtime_type
-from .runtime import RuntimeBackend, NativeBackend, PodmanBackend
-from .models.config import RUNTIME_TYPES
+from .. import __version__
+from ..config import get_config, set_runtime_type
+from . import RuntimeBackend, NativeBackend, PodmanBackend
+from ..models.config import RUNTIME_TYPES
 
 
 def is_git_development() -> bool:
