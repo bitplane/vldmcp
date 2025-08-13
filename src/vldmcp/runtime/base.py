@@ -75,10 +75,14 @@ class RuntimeBackend(ABC):
         mcp_images_size = 0  # Container backends will override this
         mcp_data_size = get_dir_size(paths.cache_dir())
 
+        # WWW data
+        www_size = get_dir_size(paths.www_dir())
+
         return DiskUsage(
             config=config_size,
             install=InstallUsage(image=install_image_size, data=install_data_size),
             mcp=McpUsage(repos=repos_size, images=mcp_images_size, data=mcp_data_size),
+            www=www_size,
         )
 
     def deploy(self) -> bool:

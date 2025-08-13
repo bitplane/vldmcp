@@ -248,6 +248,7 @@ class PodmanBackend(RuntimeBackend):
             str(paths.cache_dir()): "/var/cache/vldmcp:rw",
             str(paths.config_dir()): "/etc/vldmcp:ro",
             str(paths.runtime_dir()): "/run/vldmcp:rw",
+            str(paths.www_dir()): "/var/lib/vldmcp/www:rw",
         }
 
         # Get ports from config

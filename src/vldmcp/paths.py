@@ -94,6 +94,11 @@ def install_dir() -> Path:
     return data_dir() / "install"
 
 
+def www_dir() -> Path:
+    """Get the directory for serving static files and models."""
+    return data_dir() / "www"
+
+
 def pid_file_path() -> Path:
     """Get the path to the server PID file."""
     return runtime_dir() / "vldmcp.pid"
@@ -118,6 +123,14 @@ def create_directories() -> None:
 
     # Create install directory
     install_dir().mkdir(parents=True, exist_ok=True)
+
+    # Create www directory and subdirectories
+    www = www_dir()
+    www.mkdir(parents=True, exist_ok=True)
+    (www / "models").mkdir(exist_ok=True)
+    (www / "assets").mkdir(exist_ok=True)
+    (www / "uploads").mkdir(exist_ok=True)
+    (www / "generated").mkdir(exist_ok=True)
 
     # Create runtime directory with secure permissions
     runtime_dir().mkdir(parents=True, exist_ok=True, mode=0o700)
