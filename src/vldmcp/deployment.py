@@ -1,149 +1,22 @@
-"""Server management backend.
+"""Server deployment and lifecycle management.
 
-This module handles all server management operations independent of the CLI.
-It abstracts away platform-specific details and container runtime choices.
+This module handles server installation, building, and lifecycle operations.
+It coordinates with runtime backends for actual server execution.
 """
 
 import os
 import subprocess
 from pathlib import Path
 from typing import Optional, List, Tuple
-from abc import ABC, abstractmethod
 
 from . import __version__
 from . import paths
 from . import crypto
+from .runtime import RuntimeBackend, PodmanBackend, NativeBackend
 
 
-class RuntimeBackend(ABC):
-    """Abstract base class for different runtime backends (podman, docker, native, etc)."""
-
-    @abstractmethod
-    def build(self, dockerfile_path: Path) -> bool:
-        """Build the server image/environment."""
-        pass
-
-    @abstractmethod
-    def start(self, mounts: dict[str, str], ports: List[str]) -> str:
-        """Start the server and return a process/container ID."""
-        pass
-
-    @abstractmethod
-    def stop(self, server_id: str) -> bool:
-        """Stop the server."""
-        pass
-
-    @abstractmethod
-    def status(self, server_id: str) -> str:
-        """Get server status."""
-        pass
-
-    @abstractmethod
-    def logs(self, server_id: str) -> str:
-        """Get server logs."""
-        pass
-
-
-class PodmanBackend(RuntimeBackend):
-    """Podman container runtime backend."""
-
-    def build(self, dockerfile_path: Path) -> bool:
-        """Build container with podman."""
-        result = subprocess.run(
-            ["podman", "build", "-t", "vldmcp:latest", str(dockerfile_path.parent)], capture_output=True
-        )
-        return result.returncode == 0
-
-    def start(self, mounts: dict[str, str], ports: List[str]) -> str:
-        """Start container with podman."""
-        cmd = ["podman", "run", "-d", "--name", "vldmcp-server"]
-
-        # Add mounts
-        for host_path, container_path in mounts.items():
-            mode = "ro" if container_path.endswith(":ro") else "rw"
-            container_path = container_path.replace(":ro", "").replace(":rw", "")
-            cmd.extend(["-v", f"{host_path}:{container_path}:{mode}"])
-
-        # Add ports
-        for port in ports:
-            cmd.extend(["-p", port])
-
-        cmd.append("vldmcp:latest")
-
-        subprocess.run(cmd, capture_output=True, text=True, check=True)
-
-        # Get container PID
-        pid_result = subprocess.run(
-            ["podman", "inspect", "--format", "{{.State.Pid}}", "vldmcp-server"],
-            capture_output=True,
-            text=True,
-            check=True,
-        )
-        return f"container:{pid_result.stdout.strip()}"
-
-    def stop(self, server_id: str) -> bool:
-        """Stop podman container."""
-        subprocess.run(["podman", "stop", "vldmcp-server"], check=True)
-        subprocess.run(["podman", "rm", "vldmcp-server"], check=True)
-        return True
-
-    def status(self, server_id: str) -> str:
-        """Check podman container status."""
-        result = subprocess.run(
-            ["podman", "ps", "-a", "--filter", "name=vldmcp-server"], capture_output=True, text=True
-        )
-        if "vldmcp-server" in result.stdout:
-            if "Up" in result.stdout:
-                return "running"
-            else:
-                return "stopped"
-        return "not found"
-
-    def logs(self, server_id: str) -> str:
-        """Get podman container logs."""
-        result = subprocess.run(["podman", "logs", "vldmcp-server"], capture_output=True, text=True)
-        return result.stdout
-
-
-class NativeBackend(RuntimeBackend):
-    """Native process runtime backend (no container)."""
-
-    def build(self, dockerfile_path: Path) -> bool:
-        """No build needed for native."""
-        return True
-
-    def start(self, mounts: dict[str, str], ports: List[str]) -> str:
-        """Start native server process."""
-        # In a real implementation, this would start the actual server
-        # For now, just return the current PID
-        return str(os.getpid())
-
-    def stop(self, server_id: str) -> bool:
-        """Stop native server process."""
-        try:
-            pid = int(server_id)
-            os.kill(pid, 15)  # SIGTERM
-            return True
-        except (ValueError, OSError):
-            return False
-
-    def status(self, server_id: str) -> str:
-        """Check if native process is running."""
-        try:
-            pid = int(server_id)
-            os.kill(pid, 0)
-            return "running"
-        except (ValueError, OSError):
-            return "stopped"
-
-    def logs(self, server_id: str) -> str:
-        """Get native process logs."""
-        # Would read from log file in real implementation
-        return "Native process logs not yet implemented"
-
-
-class ServerManager:
-    """High-level server management interface."""
+class Deployment:
+    """High-level server deployment and lifecycle management."""
 
     def __init__(self, backend: Optional[RuntimeBackend] = None):
         """Initialize with a specific backend or auto-detect."""
@@ -419,3 +292,14 @@ CMD ["vldmcpd"]
 
         pid_content = pid_file.read_text().strip()
         return self.backend.logs(pid_content)
+
+    def stream_logs(self) -> None:
+        """Stream server logs to stdout."""
+        pid_file = paths.pid_file_path()
+
+        if not pid_file.exists():
+            print("Server not running")
+            return
+
+        pid_content = pid_file.read_text().strip()
+        self.backend.stream_logs(pid_content)

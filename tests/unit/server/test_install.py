@@ -7,7 +7,7 @@ from unittest.mock import patch
 from click.testing import CliRunner
 
 from vldmcp import paths
-from vldmcp.cli.server import install
+from vldmcp.cli.lifecycle import install
 
 
 def test_install_creates_directories(tmp_path, monkeypatch):
@@ -39,7 +39,7 @@ def test_install_creates_pip_dockerfile_for_release_version(tmp_path, monkeypatc
     monkeypatch.setenv("XDG_RUNTIME_DIR", str(tmp_path / "runtime"))
 
     runner = CliRunner()
-    with patch("vldmcp.server_manager.__version__", "1.2.3"):
+    with patch("vldmcp.deployment.__version__", "1.2.3"):
         result = runner.invoke(install)
 
     assert result.exit_code == 0
@@ -69,7 +69,7 @@ def test_install_clones_from_local_repo_if_available(tmp_path, monkeypatch):
     ).stdout.strip()[:7]  # Use short commit hash
 
     # Patch __version__ to trigger git mode with real commit
-    with patch("vldmcp.server_manager.__version__", f"1.2.3+{current_commit}"):
+    with patch("vldmcp.deployment.__version__", f"1.2.3+{current_commit}"):
         result = runner.invoke(install)
 
     assert result.exit_code == 0
@@ -108,7 +108,7 @@ def test_install_updates_existing_repo(tmp_path, monkeypatch):
     ).stdout.strip()[:7]
 
     # First install to clone the repo
-    with patch("vldmcp.server_manager.__version__", f"1.2.3+{current_commit}"):
+    with patch("vldmcp.deployment.__version__", f"1.2.3+{current_commit}"):
         result = runner.invoke(install)
         assert result.exit_code == 0
 
@@ -119,7 +119,7 @@ def test_install_updates_existing_repo(tmp_path, monkeypatch):
     subprocess.run(["git", "rev-parse", "HEAD"], cwd=repo_dir, capture_output=True, text=True).stdout.strip()
 
     # Run install again - should update (using same commit, but tests the update path)
-    with patch("vldmcp.server_manager.__version__", f"1.2.3+{current_commit}"):
+    with patch("vldmcp.deployment.__version__", f"1.2.3+{current_commit}"):
         result = runner.invoke(install)
         assert result.exit_code == 0
 
@@ -142,7 +142,7 @@ def test_install_handles_pypi_version(tmp_path, monkeypatch):
     runner = CliRunner()
 
     # Test with a release version (no +)
-    with patch("vldmcp.server_manager.__version__", "1.2.3"):
+    with patch("vldmcp.deployment.__version__", "1.2.3"):
         result = runner.invoke(install)
 
     assert result.exit_code == 0

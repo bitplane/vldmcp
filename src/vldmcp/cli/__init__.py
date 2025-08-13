@@ -3,7 +3,7 @@
 import click
 
 from .. import __version__
-from .server import server
+from .lifecycle import server
 
 
 @click.group()

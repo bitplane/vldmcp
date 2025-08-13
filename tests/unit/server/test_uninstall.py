@@ -3,7 +3,7 @@
 from click.testing import CliRunner
 
 from vldmcp import paths
-from vldmcp.cli.server import uninstall
+from vldmcp.cli.lifecycle import uninstall
 
 
 def test_uninstall_removes_directory(tmp_path, monkeypatch):

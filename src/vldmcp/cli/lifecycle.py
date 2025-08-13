@@ -5,7 +5,7 @@ import subprocess
 import click
 
 from .. import paths
-from ..server_manager import ServerManager
+from ..deployment import Deployment
 
 
 @click.group()
@@ -19,8 +19,8 @@ def install():
     """Install the Docker base image and setup vldmcp."""
     click.echo("Setting up vldmcp...")
 
-    manager = ServerManager()
-    if manager.install():
+    deployment = Deployment()
+    if deployment.install():
         click.echo("Installation complete!")
     else:
         click.echo("Installation failed!")
@@ -41,7 +41,7 @@ def install():
 )
 def uninstall(purge, yes):
     """Uninstall the vldmcp server and optionally remove all user data."""
-    manager = ServerManager()
+    deployment = Deployment()
 
     # Get list of what will be removed (for display)
     install_dir = paths.install_dir()
@@ -85,7 +85,7 @@ def uninstall(purge, yes):
         click.confirm("\nContinue?", abort=True)
 
     # Do the actual removal
-    dirs_removed = manager.uninstall(purge=purge)
+    dirs_removed = deployment.uninstall(purge=purge)
 
     for desc, path in dirs_removed:
         click.echo(f"Removed {desc.lower()}: {path}")
@@ -98,8 +98,8 @@ def build():
     """Build the server container."""
     click.echo("Building server container...")
 
-    manager = ServerManager()
-    if manager.build():
+    deployment = Deployment()
+    if deployment.build():
         click.echo("Build complete!")
     else:
         click.echo("No installation found. Run 'vldmcp server install' first.")
@@ -114,16 +114,16 @@ def build():
 )
 def start(debug):
     """Start the vldmcp server."""
-    manager = ServerManager()
+    deployment = Deployment()
 
     # Check if already running
-    if manager.status() == "running":
+    if deployment.status() == "running":
         click.echo("Server is already running")
         return
 
     click.echo("Starting vldmcp server...")
 
-    server_id = manager.start(debug=debug)
+    server_id = deployment.start(debug=debug)
     if server_id:
         if debug:
             click.echo(f"Server started in debug mode (PID: {server_id})")
@@ -139,8 +139,8 @@ def stop():
     """Stop the vldmcp server."""
     click.echo("Stopping vldmcp server...")
 
-    manager = ServerManager()
-    if manager.stop():
+    deployment = Deployment()
+    if deployment.stop():
         click.echo("Server stopped!")
     else:
         click.echo("No server running or failed to stop")
@@ -150,8 +150,8 @@ def stop():
 @server.command()
 def status():
     """Check the status of the vldmcp server."""
-    manager = ServerManager()
-    status = manager.status()
+    deployment = Deployment()
+    status = deployment.status()
 
     if status == "running":
         click.echo("Server is running")
@@ -164,16 +164,8 @@ def status():
 @server.command()
 def logs():
     """View the server logs."""
-    manager = ServerManager()
-
-    # For now, if using podman, stream logs directly
-    # In future, manager.logs() could handle this better
-    pid_file = paths.pid_file_path()
-    if pid_file.exists() and "container:" in pid_file.read_text():
-        subprocess.run(["podman", "logs", "-f", "vldmcp-server"], check=True)
-    else:
-        logs = manager.logs()
-        click.echo(logs)
+    deployment = Deployment()
+    deployment.stream_logs()
 
 
 @server.command()
