@@ -2,7 +2,6 @@
 
 import os
 from pathlib import Path
-from typing import List
 
 from .base import RuntimeBackend
 
@@ -14,11 +13,15 @@ class NativeBackend(RuntimeBackend):
         """No build needed for native."""
         return True
 
-    def start(self, mounts: dict[str, str], ports: List[str]) -> str:
+    def start(self, mounts: dict[str, str], ports: list[str]) -> str:
         """Start native server process."""
-        # In a real implementation, this would start the actual server
-        # For now, just return the current PID
-        return str(os.getpid())
+        import subprocess
+
+        # Start the daemon in the background
+        proc = subprocess.Popen(
+            ["vldmcpd"], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+        )
+        return str(proc.pid)
 
     def stop(self, server_id: str) -> bool:
         """Stop native server process."""

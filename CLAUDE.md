@@ -28,11 +28,16 @@ make clean
 * All imports should be at module level (not in functions).
 * The project will degrade into verbose, brittle spaghetti if left unchecked.
   Periodically propose simplifications.
-* Branches are a source of shame and disgust. They should be used sparingly.
-* Defensive programming is for the weak.
+* Branches are a source of shame, disgust and anger. They should be used
+  sparingly, because dogs get kicked to death when there are too many branches.
+* Defensive programming is for the weak. If their input is shit, them eat stack
+  traces.
 * Do not guess, read the docs. All the files are in source control or in the
   `.venv` dir at the project root.
-* Also, don't use includes in functions.
+* Also, don't use imports in functions.
+* The version of this project is 0.0.1. We don't need legacy versions of
+  anything. They're branches that cause people's wives to walk into doors and
+  stepchildren to fall down the stairs.
 
 ### Testing
 

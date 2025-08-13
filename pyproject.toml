@@ -8,21 +8,17 @@ authors = [
 readme = "README.md"
 requires-python = ">=3.10"
 
-[project.urls]
-Homepage = "https://bitplane.net/dev/python/vldmcp"
-Repository = "https://github.com/bitplane/vldmcp"
 
 dependencies = [
     "click",
     "fastapi",
     "fastmcp",
     "gitpython",
+    "pydantic",
+    "pydantic-settings",
+    "tomli",
     "veilid"
 ]
-
-[project.scripts]
-vldmcp = "vldmcp.cli:cli"
-vldmcpd = "vldmcp.daemon:main"
 
 [project.optional-dependencies]
 dev = [
@@ -32,9 +28,16 @@ dev = [
     "pytest-cov",
     "build",
     "twine",
-    "ruff",
-    "pydoc-markdown"
+    "ruff"
 ]
+
+[project.urls]
+Homepage = "https://bitplane.net/dev/python/vldmcp"
+Repository = "https://github.com/bitplane/vldmcp"
+
+[project.scripts]
+vldmcp = "vldmcp.cli:cli"
+vldmcpd = "vldmcp.daemon:main"
 
 [build-system]
 build-backend = "flit_core.buildapi"

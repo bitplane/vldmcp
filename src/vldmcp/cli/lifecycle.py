@@ -1,11 +1,11 @@
 """Server management commands for vldmcp - thin CLI layer."""
 
-import subprocess
-
 import click
 
 from .. import paths
 from ..deployment import Deployment
+from ..models.config import RUNTIME_TYPES
+from ..util.pprint import pprint_size
 
 
 @click.group()
@@ -15,16 +15,29 @@ def server():
 
 
 @server.command()
-def install():
+@click.option(
+    "--runtime",
+    type=click.Choice([*RUNTIME_TYPES, "guess"], case_sensitive=False),
+    default="guess",
+    help="Runtime to use for deployment (default: auto-detect)",
+)
+def install(runtime):
     """Install the Docker base image and setup vldmcp."""
+    from ..config import set_runtime_type
+
     click.echo("Setting up vldmcp...")
+
+    # Set runtime type if specified
+    if runtime != "guess":
+        click.echo(f"Using {runtime} runtime")
+        set_runtime_type(runtime)
 
     deployment = Deployment()
     if deployment.install():
         click.echo("Installation complete!")
     else:
         click.echo("Installation failed!")
-        raise click.Exit(1)
+        raise SystemExit(1)
 
 
 @server.command()
@@ -103,7 +116,7 @@ def build():
         click.echo("Build complete!")
     else:
         click.echo("No installation found. Run 'vldmcp server install' first.")
-        raise click.Exit(1)
+        raise SystemExit(1)
 
 
 @server.command()
@@ -131,7 +144,7 @@ def start(debug):
             click.echo("Server started!")
     else:
         click.echo("Failed to start server")
-        raise click.Exit(1)
+        raise SystemExit(1)
 
 
 @server.command()
@@ -144,7 +157,7 @@ def stop():
         click.echo("Server stopped!")
     else:
         click.echo("No server running or failed to stop")
-        raise click.Exit(1)
+        raise SystemExit(1)
 
 
 @server.command()
@@ -169,42 +182,47 @@ def logs():
 
 
 @server.command()
-def du():
+@click.option("-h", "--human", is_flag=True, help="Output human-readable sizes instead of bytes")
+def du(human):
     """Show disk usage for vldmcp."""
-    # Collect all vldmcp directories
-    dirs_to_check = [
-        ("Config", paths.config_dir()),
-        ("Data", paths.data_dir()),
-        ("State", paths.state_dir()),
-        ("Cache", paths.cache_dir()),
-        ("Install", paths.install_dir()),
-        ("Runtime", paths.runtime_dir()),
-    ]
+    deployment = Deployment()
 
-    total_size = 0
-    existing_dirs = []
+    # Get sizes in bytes from deployment
+    usage = deployment.du()
 
-    for desc, path in dirs_to_check:
-        if path.exists():
-            result = subprocess.run(["du", "-sb", str(path)], capture_output=True, text=True, check=True)
-            size_bytes = int(result.stdout.split()[0])
-            total_size += size_bytes
+    # Convert to dict for processing
+    usage_dict = usage.model_dump(exclude_none=True, exclude_defaults=False)
 
-            # Human readable size
-            result_hr = subprocess.run(["du", "-sh", str(path)], capture_output=True, text=True, check=True)
-            size_hr = result_hr.stdout.split()[0]
+    # Convert to human readable if requested
+    if human:
+        usage_dict = _humanize_sizes(usage_dict)
 
-            existing_dirs.append((desc, path, size_hr))
+    # Output as tab-separated
+    _output_nested_dict(usage_dict)
 
-    if not existing_dirs:
-        click.echo("No vldmcp installation found.")
-        return
 
-    # Convert total to human readable
-    result_total = subprocess.run(["numfmt", "--to=iec", str(total_size)], capture_output=True, text=True)
-    total_hr = result_total.stdout.strip() if result_total.returncode == 0 else f"{total_size} bytes"
+def _humanize_sizes(d):
+    """Recursively convert byte sizes to human-readable format."""
+    result = {}
+    for key, value in d.items():
+        if isinstance(value, dict):
+            result[key] = _humanize_sizes(value)
+        elif isinstance(value, int):
+            result[key] = pprint_size(value)
+        else:
+            result[key] = value
+    return result
 
-    click.echo(f"Total vldmcp disk usage: {total_hr}")
-    click.echo("\nBreakdown:")
-    for desc, path, size in existing_dirs:
-        click.echo(f"  {desc:8} {size:>8} {path}")
+
+def _output_nested_dict(d, prefix=""):
+    """Output nested dictionary in tab-separated format."""
+    for key, value in d.items():
+        if isinstance(value, dict):
+            # Nested dict - recurse with prefix
+            new_prefix = f"{prefix}.{key}" if prefix else key
+            _output_nested_dict(value, new_prefix)
+        else:
+            # Leaf value - output as tab-separated
+            full_key = f"{prefix}.{key}" if prefix else key
+            if value and value != 0 and value != "0B":
+                click.echo(f"{full_key}\t{value}")

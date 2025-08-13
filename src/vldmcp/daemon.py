@@ -23,7 +23,7 @@ def main():
 
     crypto.ensure_user_key()
 
-    # Write PID file
+    # Write PID file (inside container this goes to /var/run, outside it's managed by deployment)
     pid_file = paths.pid_file_path()
     pid_file.parent.mkdir(parents=True, exist_ok=True)
     pid_file.write_text(str(os.getpid()))
@@ -46,7 +46,7 @@ def main():
     except KeyboardInterrupt:
         print("\nServer stopped by user")
     finally:
-        # Clean up PID file
+        # Clean up PID file (inside container)
         if pid_file.exists():
             pid_file.unlink()
         sys.exit(0)

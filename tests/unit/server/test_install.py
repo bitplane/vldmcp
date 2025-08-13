@@ -1,7 +1,5 @@
 """Tests for server install command."""
 
-import subprocess
-from pathlib import Path
 from unittest.mock import patch
 
 from click.testing import CliRunner
@@ -49,8 +47,8 @@ def test_install_creates_pip_dockerfile_for_release_version(tmp_path, monkeypatc
     assert 'CMD ["vldmcpd"]' in dockerfile
 
 
-def test_install_clones_from_local_repo_if_available(tmp_path, monkeypatch):
-    """Test that install clones from local repo when it exists."""
+def test_install_creates_pypi_dockerfile_for_dev_version(tmp_path, monkeypatch):
+    """Test that install creates PyPI Dockerfile even for dev versions."""
     # Patch XDG directories
     monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "data"))
     monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path / "state"))
@@ -60,38 +58,24 @@ def test_install_clones_from_local_repo_if_available(tmp_path, monkeypatch):
 
     runner = CliRunner()
 
-    # Get the actual project root
-    project_root = Path(__file__).parent.parent.parent.parent
-
-    # Get current HEAD commit
-    current_commit = subprocess.run(
-        ["git", "rev-parse", "HEAD"], cwd=project_root, capture_output=True, text=True
-    ).stdout.strip()[:7]  # Use short commit hash
-
-    # Patch __version__ to trigger git mode with real commit
-    with patch("vldmcp.deployment.__version__", f"1.2.3+{current_commit}"):
+    # Test with a dev version (has +)
+    with patch("vldmcp.deployment.__version__", "1.2.3+abc123"):
         result = runner.invoke(install)
 
     assert result.exit_code == 0
 
-    # Check that repo was cloned
-    repo_dir = paths.repos_dir() / "vldmcp"
-    assert repo_dir.exists()
-    assert (repo_dir / ".git").exists()
-
-    # Verify it's actually a git repo
-    result = subprocess.run(["git", "rev-parse", "--git-dir"], cwd=repo_dir, capture_output=True, text=True)
-    assert result.returncode == 0
-
-    # Check Dockerfile was created correctly
+    # Check Dockerfile was created correctly - should still use PyPI
     dockerfile = (paths.install_dir() / "base" / "Dockerfile").read_text()
-    assert "COPY repo /app" in dockerfile
-    assert "pip install -e ." in dockerfile
+    assert "pip install vldmcp==1.2.3+abc123" in dockerfile
+    assert "FROM python:3.10-slim" in dockerfile
     assert 'CMD ["vldmcpd"]' in dockerfile
+    # Should NOT have git-related commands
+    assert "COPY repo" not in dockerfile
+    assert "pip install -e ." not in dockerfile
 
 
-def test_install_updates_existing_repo(tmp_path, monkeypatch):
-    """Test that install updates existing repository."""
+def test_install_multiple_times_succeeds(tmp_path, monkeypatch):
+    """Test that running install multiple times succeeds."""
     # Patch XDG directories
     monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "data"))
     monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path / "state"))
@@ -101,33 +85,25 @@ def test_install_updates_existing_repo(tmp_path, monkeypatch):
 
     runner = CliRunner()
 
-    # Get current HEAD commit
-    project_root = Path(__file__).parent.parent.parent.parent
-    current_commit = subprocess.run(
-        ["git", "rev-parse", "HEAD"], cwd=project_root, capture_output=True, text=True
-    ).stdout.strip()[:7]
-
-    # First install to clone the repo
-    with patch("vldmcp.deployment.__version__", f"1.2.3+{current_commit}"):
+    # First install
+    with patch("vldmcp.deployment.__version__", "1.2.3"):
         result = runner.invoke(install)
         assert result.exit_code == 0
 
-    repo_dir = paths.repos_dir() / "vldmcp"
-    assert repo_dir.exists()
+    # Verify installation
+    assert paths.install_dir().exists()
+    dockerfile_path = paths.install_dir() / "base" / "Dockerfile"
+    assert dockerfile_path.exists()
 
-    # Get initial commit
-    subprocess.run(["git", "rev-parse", "HEAD"], cwd=repo_dir, capture_output=True, text=True).stdout.strip()
-
-    # Run install again - should update (using same commit, but tests the update path)
-    with patch("vldmcp.deployment.__version__", f"1.2.3+{current_commit}"):
+    # Run install again - should succeed
+    with patch("vldmcp.deployment.__version__", "1.2.4"):
         result = runner.invoke(install)
         assert result.exit_code == 0
 
-    # Verify repo still exists and is valid
-    assert (repo_dir / ".git").exists()
-
-    # Should complete successfully
+    # Should complete successfully and update version
     assert "Installation complete!" in result.output
+    dockerfile = dockerfile_path.read_text()
+    assert "pip install vldmcp==1.2.4" in dockerfile
 
 
 def test_install_handles_pypi_version(tmp_path, monkeypatch):
@@ -146,9 +122,6 @@ def test_install_handles_pypi_version(tmp_path, monkeypatch):
         result = runner.invoke(install)
 
     assert result.exit_code == 0
-
-    # Should create repo dir even for PyPI install
-    assert (paths.repos_dir() / "vldmcp").exists()
 
     # Check Dockerfile uses pip install
     dockerfile = (paths.install_dir() / "base" / "Dockerfile").read_text()

@@ -5,44 +5,23 @@ It coordinates with runtime backends for actual server execution.
 """
 
 import os
-import subprocess
 from pathlib import Path
-from typing import Optional, List, Tuple
+from typing import Optional
 
 from . import __version__
 from . import paths
 from . import crypto
-from .runtime import RuntimeBackend, PodmanBackend, NativeBackend
+from .models.disk_usage import DiskUsage
+from .runtime_detection import get_runtime
+from .runtime import NativeBackend
 
 
 class Deployment:
     """High-level server deployment and lifecycle management."""
 
-    def __init__(self, backend: Optional[RuntimeBackend] = None):
-        """Initialize with a specific backend or auto-detect."""
-        if backend is None:
-            backend = self._detect_backend()
-        self.backend = backend
-
-    def _detect_backend(self) -> RuntimeBackend:
-        """Auto-detect the best available backend."""
-        # Check for podman
-        try:
-            subprocess.run(["podman", "--version"], capture_output=True, check=True)
-            return PodmanBackend()
-        except (subprocess.CalledProcessError, FileNotFoundError):
-            pass
-
-        # Check for docker
-        try:
-            subprocess.run(["docker", "--version"], capture_output=True, check=True)
-            # Would return DockerBackend() if we had one
-            pass
-        except (subprocess.CalledProcessError, FileNotFoundError):
-            pass
-
-        # Fall back to native
-        return NativeBackend()
+    def __init__(self):
+        """Initialize with runtime from configuration."""
+        self.backend = get_runtime()
 
     def install(self) -> bool:
         """Install vldmcp with all necessary setup."""
@@ -66,78 +45,9 @@ class Deployment:
         return True
 
     def _create_dockerfile(self, base_dir: Path) -> None:
-        """Create Dockerfile based on installation type."""
-        # Determine if this is a git version or pip version
-        is_git_version = "+" in __version__ and __version__ != "unknown"
-
-        if is_git_version:
-            # Git-based installation
-            self._setup_git_install(base_dir, __version__)
-        else:
-            # PyPI installation
-            self._setup_pip_install(base_dir, __version__)
-
-    def _setup_git_install(self, base_dir: Path, version: str) -> None:
-        """Set up git-based installation."""
-        # Clone repo to cache
-        repo_dir = paths.repos_dir() / "vldmcp"
-
-        # Extract version info
-        if "+" in version:
-            base_version, git_ref = version.split("+", 1)
-            if "." in git_ref:
-                branch, commit = git_ref.rsplit(".", 1)
-                checkout_ref = branch
-            else:
-                checkout_ref = git_ref
-
-        # Clone or update repo
-        if repo_dir.exists():
-            subprocess.run(["git", "fetch", "--all"], cwd=repo_dir, check=True)
-            subprocess.run(
-                ["git", "-c", "advice.detachedHead=false", "checkout", checkout_ref], cwd=repo_dir, check=True
-            )
-        else:
-            # Determine source repo
-            import vldmcp
-
-            local_repo = Path(vldmcp.__file__).parent.parent
-            if (local_repo / ".git").exists():
-                source_repo = str(local_repo)
-            else:
-                source_repo = "https://github.com/bitplane/vldmcp.git"
-
-            subprocess.run(["git", "clone", source_repo, str(repo_dir)], check=True)
-            subprocess.run(
-                ["git", "-c", "advice.detachedHead=false", "checkout", checkout_ref], cwd=repo_dir, check=True
-            )
-
-        # Create Dockerfile
-        dockerfile_content = f"""FROM python:3.10-slim
-
-# Install git
-RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
-
-# Copy the repository
-COPY repo /app
-
-WORKDIR /app
-
-# Install the package
-RUN pip install -e .
-
-# Version: {version}
-CMD ["vldmcpd"]
-"""
-        (base_dir / "Dockerfile").write_text(dockerfile_content)
-
-    def _setup_pip_install(self, base_dir: Path, version: str) -> None:
-        """Set up PyPI-based installation."""
-        # Create empty repo dir for compatibility
-        repo_dir = paths.repos_dir() / "vldmcp"
-        repo_dir.mkdir(parents=True, exist_ok=True)
-
-        version_spec = version if version != "unknown" else ""
+        """Create Dockerfile for PyPI installation."""
+        # Always use PyPI installation for containers
+        version_spec = __version__ if __version__ != "unknown" else ""
 
         # Create Dockerfile
         dockerfile_content = f"""FROM python:3.10-slim
@@ -147,12 +57,12 @@ WORKDIR /app
 # Install from PyPI
 RUN pip install vldmcp{f'=={version_spec}' if version_spec else ''}
 
-# Version: {version}
+# Version: {__version__}
 CMD ["vldmcpd"]
 """
         (base_dir / "Dockerfile").write_text(dockerfile_content)
 
-    def uninstall(self, purge: bool = False) -> List[Tuple[str, Path]]:
+    def uninstall(self, purge: bool = False) -> list[tuple[str, Path]]:
         """Uninstall vldmcp, optionally purging all data.
 
         Returns list of (description, path) tuples that were removed.
@@ -223,8 +133,9 @@ CMD ["vldmcpd"]
                 return None
 
         if debug or isinstance(self.backend, NativeBackend):
-            # Run natively
-            server_id = self.backend.start({}, [])
+            # Run natively - use native backend for debug mode
+            native_backend = NativeBackend()
+            server_id = native_backend.start({}, [])
         else:
             # Ensure built
             if not self.build():
@@ -303,3 +214,11 @@ CMD ["vldmcpd"]
 
         pid_content = pid_file.read_text().strip()
         self.backend.stream_logs(pid_content)
+
+    def du(self) -> DiskUsage:
+        """Get disk usage information from runtime backend.
+
+        Returns:
+            DiskUsage model with sizes in bytes by functional area
+        """
+        return self.backend.du()
