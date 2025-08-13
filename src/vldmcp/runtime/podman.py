@@ -15,8 +15,19 @@ from .base import RuntimeBackend
 class PodmanBackend(RuntimeBackend):
     """Podman container runtime backend."""
 
+    def _get_podman_config(self):
+        """Get podman-specific configuration values."""
+        config = get_config()
+        if hasattr(config.runtime, "image_name") and hasattr(config.runtime, "container_name"):
+            return config.runtime.image_name, config.runtime.container_name
+        # Fallback to defaults if config doesn't have podman-specific fields
+        return "vldmcp:latest", "vldmcp-server"
+
     def build(self, dockerfile_path: Path) -> bool:
         """Build container with podman."""
+        # Get config values
+        image_name, _ = self._get_podman_config()
+
         # Build with version spec if we have a known version
         version_spec = f"=={__version__}" if __version__ != "unknown" else ""
 
@@ -27,7 +38,7 @@ class PodmanBackend(RuntimeBackend):
                 "--build-arg",
                 f"VERSION_SPEC={version_spec}",
                 "-t",
-                "vldmcp:latest",
+                image_name,
                 str(dockerfile_path.parent),
             ],
             capture_output=True,
@@ -36,7 +47,10 @@ class PodmanBackend(RuntimeBackend):
 
     def start(self, mounts: dict[str, str], ports: list[str]) -> str:
         """Start container with podman."""
-        cmd = ["podman", "run", "-d", "--name", "vldmcp-server"]
+        # Get config values
+        image_name, container_name = self._get_podman_config()
+
+        cmd = ["podman", "run", "-d", "--name", container_name]
 
         # Add mounts
         for host_path, container_path in mounts.items():
@@ -48,13 +62,13 @@ class PodmanBackend(RuntimeBackend):
         for port in ports:
             cmd.extend(["-p", port])
 
-        cmd.append("vldmcp:latest")
+        cmd.append(image_name)
 
         subprocess.run(cmd, capture_output=True, text=True, check=True)
 
         # Get container PID
         pid_result = subprocess.run(
-            ["podman", "inspect", "--format", "{{.State.Pid}}", "vldmcp-server"],
+            ["podman", "inspect", "--format", "{{.State.Pid}}", container_name],
             capture_output=True,
             text=True,
             check=True,
@@ -63,16 +77,18 @@ class PodmanBackend(RuntimeBackend):
 
     def stop(self, server_id: str) -> bool:
         """Stop podman container."""
-        subprocess.run(["podman", "stop", "vldmcp-server"], check=True)
-        subprocess.run(["podman", "rm", "vldmcp-server"], check=True)
+        _, container_name = self._get_podman_config()
+        subprocess.run(["podman", "stop", container_name], check=True)
+        subprocess.run(["podman", "rm", container_name], check=True)
         return True
 
     def status(self, server_id: str) -> str:
         """Check podman container status."""
+        _, container_name = self._get_podman_config()
         result = subprocess.run(
-            ["podman", "ps", "-a", "--filter", "name=vldmcp-server"], capture_output=True, text=True
+            ["podman", "ps", "-a", "--filter", f"name={container_name}"], capture_output=True, text=True
         )
-        if "vldmcp-server" in result.stdout:
+        if container_name in result.stdout:
             if "Up" in result.stdout:
                 return "running"
             else:
@@ -81,12 +97,14 @@ class PodmanBackend(RuntimeBackend):
 
     def logs(self, server_id: str) -> str:
         """Get podman container logs."""
-        result = subprocess.run(["podman", "logs", "vldmcp-server"], capture_output=True, text=True)
+        _, container_name = self._get_podman_config()
+        result = subprocess.run(["podman", "logs", container_name], capture_output=True, text=True)
         return result.stdout
 
     def stream_logs(self, server_id: str) -> None:
         """Stream podman container logs to stdout."""
-        subprocess.run(["podman", "logs", "-f", "vldmcp-server"], check=True)
+        _, container_name = self._get_podman_config()
+        subprocess.run(["podman", "logs", "-f", container_name], check=True)
 
     def du(self) -> DiskUsage:
         """Get disk usage including container images and volumes.
