@@ -3,7 +3,10 @@
 import json
 import subprocess
 from pathlib import Path
+from typing import Optional
 
+from .. import __version__, paths
+from ..config import get_config
 from ..models.disk_usage import DiskUsage
 from .base import RuntimeBackend
 
@@ -131,3 +134,125 @@ class PodmanBackend(RuntimeBackend):
         usage.mcp.data += volumes_size
 
         return usage
+
+    def build_if_needed(self) -> bool:
+        """Build container image if needed."""
+        base_dir = paths.install_dir() / "base"
+        if not base_dir.exists():
+            return False
+
+        dockerfile = base_dir / "Dockerfile"
+        if not dockerfile.exists():
+            return False
+
+        return self.build(dockerfile)
+
+    def install(self) -> bool:
+        """Install container environment (creates Dockerfile)."""
+        # Call parent install for basic setup
+        if not super().install():
+            return False
+
+        # Set up install directory for container assets
+        install_dir = paths.install_dir()
+        base_dir = install_dir / "base"
+        base_dir.mkdir(parents=True, exist_ok=True)
+
+        # Create Dockerfile for PyPI installation
+        self._create_dockerfile(base_dir)
+
+        return True
+
+    def _create_dockerfile(self, base_dir: Path) -> None:
+        """Create Dockerfile for PyPI installation."""
+        version_spec = __version__ if __version__ != "unknown" else ""
+
+        dockerfile_content = f"""FROM python:3.10-slim
+
+WORKDIR /app
+
+# Install from PyPI
+RUN pip install vldmcp{f'=={version_spec}' if version_spec else ''}
+
+# Version: {__version__}
+CMD ["vldmcpd"]
+"""
+        (base_dir / "Dockerfile").write_text(dockerfile_content)
+
+    def deploy_start(self, debug: bool = False) -> Optional[str]:
+        """Deploy and start container server."""
+        # Auto-deploy if needed
+        if not self.deploy():
+            return None
+
+        # Check if already running
+        pid_file = paths.pid_file_path()
+        if pid_file.exists():
+            try:
+                pid_content = pid_file.read_text().strip()
+                # Check if still running
+                if pid_content.startswith("container:"):
+                    status = self.status(pid_content)
+                    if status == "running":
+                        return None  # Already running
+            except (OSError, ValueError):
+                pass
+            # Remove stale PID file
+            pid_file.unlink()
+
+        # Get config for ports and other settings
+        config = get_config()
+
+        # Create mount mappings
+        mounts = {
+            str(paths.state_dir()): "/var/lib/vldmcp:rw",
+            str(paths.cache_dir()): "/var/cache/vldmcp:rw",
+            str(paths.config_dir()): "/etc/vldmcp:ro",
+            str(paths.runtime_dir()): "/run/vldmcp:rw",
+        }
+
+        # Get ports from config
+        ports = []
+        if hasattr(config.runtime, "ports"):
+            ports = config.runtime.ports
+
+        # Start container
+        server_id = self.start(mounts, ports)
+
+        # Write PID file
+        pid_file.parent.mkdir(parents=True, exist_ok=True)
+        pid_file.write_text(server_id)
+
+        return server_id
+
+    def deploy_stop(self) -> bool:
+        """Stop container server."""
+        pid_file = paths.pid_file_path()
+
+        if not pid_file.exists():
+            return False
+
+        pid_content = pid_file.read_text().strip()
+        result = self.stop(pid_content)
+
+        # Remove PID file
+        if result:
+            pid_file.unlink()
+
+        return result
+
+    def deploy_status(self) -> str:
+        """Get container server status."""
+        pid_file = paths.pid_file_path()
+
+        if not pid_file.exists():
+            return "not running"
+
+        pid_content = pid_file.read_text().strip()
+        status = self.status(pid_content)
+
+        # Clean up stale PID file
+        if status in ["stopped", "not found"]:
+            pid_file.unlink()
+
+        return status

@@ -3,7 +3,8 @@
 import click
 
 from .. import paths
-from ..deployment import Deployment
+from ..runtime import get_runtime
+from ..config import set_runtime_type
 from ..models.config import RUNTIME_TYPES
 from ..util.pprint import pprint_size
 
@@ -23,7 +24,6 @@ def server():
 )
 def install(runtime):
     """Install the Docker base image and setup vldmcp."""
-    from ..config import set_runtime_type
 
     click.echo("Setting up vldmcp...")
 
@@ -32,8 +32,8 @@ def install(runtime):
         click.echo(f"Using {runtime} runtime")
         set_runtime_type(runtime)
 
-    deployment = Deployment()
-    if deployment.install():
+    runtime = get_runtime()
+    if runtime.deploy():
         click.echo("Installation complete!")
     else:
         click.echo("Installation failed!")
@@ -54,7 +54,7 @@ def install(runtime):
 )
 def uninstall(purge, yes):
     """Uninstall the vldmcp server and optionally remove all user data."""
-    deployment = Deployment()
+    runtime = get_runtime()
 
     # Get list of what will be removed (for display)
     install_dir = paths.install_dir()
@@ -98,7 +98,7 @@ def uninstall(purge, yes):
         click.confirm("\nContinue?", abort=True)
 
     # Do the actual removal
-    dirs_removed = deployment.uninstall(purge=purge)
+    dirs_removed = runtime.uninstall(purge=purge)
 
     for desc, path in dirs_removed:
         click.echo(f"Removed {desc.lower()}: {path}")
@@ -111,8 +111,8 @@ def build():
     """Build the server container."""
     click.echo("Building server container...")
 
-    deployment = Deployment()
-    if deployment.build():
+    runtime = get_runtime()
+    if runtime.build_if_needed():
         click.echo("Build complete!")
     else:
         click.echo("No installation found. Run 'vldmcp server install' first.")
@@ -127,16 +127,16 @@ def build():
 )
 def start(debug):
     """Start the vldmcp server."""
-    deployment = Deployment()
+    runtime = get_runtime()
 
     # Check if already running
-    if deployment.status() == "running":
+    if runtime.deploy_status() == "running":
         click.echo("Server is already running")
         return
 
     click.echo("Starting vldmcp server...")
 
-    server_id = deployment.start(debug=debug)
+    server_id = runtime.deploy_start(debug=debug)
     if server_id:
         if debug:
             click.echo(f"Server started in debug mode (PID: {server_id})")
@@ -152,8 +152,8 @@ def stop():
     """Stop the vldmcp server."""
     click.echo("Stopping vldmcp server...")
 
-    deployment = Deployment()
-    if deployment.stop():
+    runtime = get_runtime()
+    if runtime.deploy_stop():
         click.echo("Server stopped!")
     else:
         click.echo("No server running or failed to stop")
@@ -163,8 +163,8 @@ def stop():
 @server.command()
 def status():
     """Check the status of the vldmcp server."""
-    deployment = Deployment()
-    status = deployment.status()
+    runtime = get_runtime()
+    status = runtime.deploy_status()
 
     if status == "running":
         click.echo("Server is running")
@@ -177,18 +177,25 @@ def status():
 @server.command()
 def logs():
     """View the server logs."""
-    deployment = Deployment()
-    deployment.stream_logs()
+    runtime = get_runtime()
+    # Get PID from file and stream logs
+    pid_file = paths.pid_file_path()
+    if not pid_file.exists():
+        click.echo("Server not running")
+        return
+
+    pid_content = pid_file.read_text().strip()
+    runtime.stream_logs(pid_content)
 
 
 @server.command()
 @click.option("-h", "--human", is_flag=True, help="Output human-readable sizes instead of bytes")
 def du(human):
     """Show disk usage for vldmcp."""
-    deployment = Deployment()
+    runtime = get_runtime()
 
-    # Get sizes in bytes from deployment
-    usage = deployment.du()
+    # Get sizes in bytes from runtime
+    usage = runtime.du()
 
     # Convert to dict for processing
     usage_dict = usage.model_dump(exclude_none=True, exclude_defaults=False)
