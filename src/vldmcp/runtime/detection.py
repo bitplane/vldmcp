@@ -27,14 +27,11 @@ def guess_runtime() -> str:
 
     Priority order:
     1. If running from git repo, use native (for development)
-    2. If podman available, use podman
-    3. Raise RuntimeError if nothing available
+    2. If podman available, use podman (preferred deployment)
+    3. If vldmcpd available, use native (fallback)
 
     Returns:
         Runtime name as string (e.g., "native", "podman")
-
-    Raises:
-        RuntimeError: If no suitable runtime is found
     """
     if is_git_development():
         return "native"
@@ -42,7 +39,11 @@ def guess_runtime() -> str:
     if has_command("podman"):
         return "podman"
 
-    raise RuntimeError("No suitable runtime found. Please install podman or run from a development environment.")
+    if has_command("vldmcpd"):
+        return "native"
+
+    # Default fallback - should rarely be reached
+    return "native"
 
 
 def get_runtime(name: str = "guess") -> RuntimeBackend:

@@ -6,6 +6,7 @@ from .. import __version__
 from .lifecycle import server
 from ..runtime import get_runtime
 from ..models.info import InfoResponse, ServerInfo
+from ..util.output import output_nested_dict
 
 
 @click.group()
@@ -36,21 +37,7 @@ def info():
 
     # Output as nested dict (similar to du command)
     response_dict = response.model_dump(exclude_none=True, exclude_defaults=False)
-    _output_nested_dict(response_dict)
-
-
-def _output_nested_dict(d, prefix=""):
-    """Output nested dictionary in tab-separated format."""
-    for key, value in d.items():
-        if isinstance(value, dict):
-            # Nested dict - recurse with prefix
-            new_prefix = f"{prefix}.{key}" if prefix else key
-            _output_nested_dict(value, new_prefix)
-        else:
-            # Leaf value - output as tab-separated
-            full_key = f"{prefix}.{key}" if prefix else key
-            if value and value != 0 and value != "0B":
-                click.echo(f"{full_key}\t{value}")
+    output_nested_dict(response_dict)
 
 
 if __name__ == "__main__":

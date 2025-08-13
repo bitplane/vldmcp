@@ -7,6 +7,7 @@ from ..runtime import get_runtime
 from ..config import set_runtime_type
 from ..models.config import RUNTIME_TYPES
 from ..util.pprint import pprint_size
+from ..util.output import output_nested_dict
 
 
 @click.group()
@@ -23,7 +24,7 @@ def server():
     help="Runtime to use for deployment (default: auto-detect)",
 )
 def install(runtime):
-    """Install the Docker base image and setup vldmcp."""
+    """Install base assets and prepare runtime."""
 
     click.echo("Setting up vldmcp...")
 
@@ -111,7 +112,7 @@ def uninstall(config, purge, yes):
     dirs_removed = runtime.uninstall(config=config, purge=purge)
 
     for desc, path in dirs_removed:
-        click.echo(f"Removed {desc.lower()}: {path}")
+        click.echo(f"Removed {desc}: {path}")
 
     click.echo("Uninstallation complete!")
 
@@ -201,7 +202,7 @@ def du(human):
         usage_dict = _humanize_sizes(usage_dict)
 
     # Output as tab-separated
-    _output_nested_dict(usage_dict)
+    output_nested_dict(usage_dict)
 
 
 def _humanize_sizes(d):
@@ -215,17 +216,3 @@ def _humanize_sizes(d):
         else:
             result[key] = value
     return result
-
-
-def _output_nested_dict(d, prefix=""):
-    """Output nested dictionary in tab-separated format."""
-    for key, value in d.items():
-        if isinstance(value, dict):
-            # Nested dict - recurse with prefix
-            new_prefix = f"{prefix}.{key}" if prefix else key
-            _output_nested_dict(value, new_prefix)
-        else:
-            # Leaf value - output as tab-separated
-            full_key = f"{prefix}.{key}" if prefix else key
-            if value and value != 0 and value != "0B":
-                click.echo(f"{full_key}\t{value}")
