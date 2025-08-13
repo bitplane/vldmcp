@@ -42,9 +42,14 @@ def install(runtime):
 
 @server.command()
 @click.option(
+    "--config",
+    is_flag=True,
+    help="Also remove configuration files",
+)
+@click.option(
     "--purge",
     is_flag=True,
-    help="Also remove user keys, config, and all user data",
+    help="Remove everything including user keys and all user data",
 )
 @click.option(
     "--yes",
@@ -52,7 +57,7 @@ def install(runtime):
     is_flag=True,
     help="Skip confirmation prompt",
 )
-def uninstall(purge, yes):
+def uninstall(config, purge, yes):
     """Uninstall the vldmcp server and optionally remove all user data."""
     runtime = get_runtime()
 
@@ -61,25 +66,30 @@ def uninstall(purge, yes):
     cache_dir = paths.cache_dir()
 
     dirs_to_show = []
+    # Always remove install and cache
     if install_dir.exists():
         dirs_to_show.append(("Install data", install_dir))
     if cache_dir.exists():
         dirs_to_show.append(("Cache", cache_dir))
 
-    if purge:
+    # --config flag: also remove config and state/runtime
+    if config or purge:
         config_dir = paths.config_dir()
-        data_dir = paths.data_dir()
         state_dir = paths.state_dir()
         runtime_dir = paths.runtime_dir()
 
         if config_dir.exists():
             dirs_to_show.append(("Configuration", config_dir))
-        if data_dir.exists():
-            dirs_to_show.append(("User data (including keys)", data_dir))
         if state_dir.exists():
             dirs_to_show.append(("State data", state_dir))
         if runtime_dir.exists():
             dirs_to_show.append(("Runtime data", runtime_dir))
+
+    # --purge flag: also remove user data (including keys)
+    if purge:
+        data_dir = paths.data_dir()
+        if data_dir.exists():
+            dirs_to_show.append(("User data (including keys)", data_dir))
 
     if not dirs_to_show:
         click.echo("No vldmcp installation found.")
@@ -98,7 +108,7 @@ def uninstall(purge, yes):
         click.confirm("\nContinue?", abort=True)
 
     # Do the actual removal
-    dirs_removed = runtime.uninstall(purge=purge)
+    dirs_removed = runtime.uninstall(config=config, purge=purge)
 
     for desc, path in dirs_removed:
         click.echo(f"Removed {desc.lower()}: {path}")
@@ -141,7 +151,7 @@ def start(debug):
         if debug:
             click.echo(f"Server started in debug mode (PID: {server_id})")
         else:
-            click.echo("Server started!")
+            click.echo(f"Server started! (PID: {server_id})")
     else:
         click.echo("Failed to start server")
         raise SystemExit(1)

@@ -8,14 +8,8 @@ from vldmcp import paths
 from vldmcp.cli.lifecycle import install
 
 
-def test_install_creates_directories(tmp_path, monkeypatch):
+def test_install_creates_directories(xdg_dirs):
     """Test that install creates required directories."""
-    # Patch XDG directories to use tmp_path
-    monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "data"))
-    monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path / "state"))
-    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
-    monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path / "cache"))
-    monkeypatch.setenv("XDG_RUNTIME_DIR", str(tmp_path / "runtime"))
 
     runner = CliRunner()
     result = runner.invoke(install)
@@ -27,14 +21,8 @@ def test_install_creates_directories(tmp_path, monkeypatch):
     # This test uses the detected runtime which is likely native in test environment
 
 
-def test_install_creates_pip_dockerfile_for_release_version(tmp_path, monkeypatch):
+def test_install_creates_pip_dockerfile_for_release_version(xdg_dirs):
     """Test that install creates correct Dockerfile for pip installation."""
-    # Patch XDG directories
-    monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "data"))
-    monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path / "state"))
-    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
-    monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path / "cache"))
-    monkeypatch.setenv("XDG_RUNTIME_DIR", str(tmp_path / "runtime"))
 
     runner = CliRunner()
     with patch("vldmcp.__version__", "1.2.3"):
@@ -43,14 +31,8 @@ def test_install_creates_pip_dockerfile_for_release_version(tmp_path, monkeypatc
     assert result.exit_code == 0
 
 
-def test_install_creates_pypi_dockerfile_for_dev_version(tmp_path, monkeypatch):
+def test_install_creates_pypi_dockerfile_for_dev_version(xdg_dirs):
     """Test that install creates PyPI Dockerfile even for dev versions."""
-    # Patch XDG directories
-    monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "data"))
-    monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path / "state"))
-    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
-    monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path / "cache"))
-    monkeypatch.setenv("XDG_RUNTIME_DIR", str(tmp_path / "runtime"))
 
     runner = CliRunner()
 
@@ -61,14 +43,8 @@ def test_install_creates_pypi_dockerfile_for_dev_version(tmp_path, monkeypatch):
     assert result.exit_code == 0
 
 
-def test_install_multiple_times_succeeds(tmp_path, monkeypatch):
+def test_install_multiple_times_succeeds(xdg_dirs):
     """Test that running install multiple times succeeds."""
-    # Patch XDG directories
-    monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "data"))
-    monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path / "state"))
-    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
-    monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path / "cache"))
-    monkeypatch.setenv("XDG_RUNTIME_DIR", str(tmp_path / "runtime"))
 
     runner = CliRunner()
 
@@ -89,14 +65,8 @@ def test_install_multiple_times_succeeds(tmp_path, monkeypatch):
     assert "Installation complete!" in result.output
 
 
-def test_install_handles_pypi_version(tmp_path, monkeypatch):
+def test_install_handles_pypi_version(xdg_dirs):
     """Test that install handles PyPI version correctly."""
-    # Patch XDG directories
-    monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "data"))
-    monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path / "state"))
-    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
-    monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path / "cache"))
-    monkeypatch.setenv("XDG_RUNTIME_DIR", str(tmp_path / "runtime"))
 
     runner = CliRunner()
 

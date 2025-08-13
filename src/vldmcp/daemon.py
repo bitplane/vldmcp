@@ -4,23 +4,19 @@ This allows running the server directly with: python -m vldmcp.server
 This bypasses the CLI and starts the server immediately.
 """
 
-import sys
 import os
+import sys
+import time
+
+from . import crypto, paths
 
 
 def main():
     """Main entry point for the server module."""
-    # This will eventually be the actual server implementation
-    # For now, it calls the CLI's start command directly
-
     # Ensure XDG directories exist
-    from . import paths
-
     paths.create_directories()
 
     # Ensure user key exists
-    from . import crypto
-
     crypto.ensure_user_key()
 
     # Write PID file (inside container this goes to /var/run, outside it's managed by deployment)
@@ -34,12 +30,9 @@ def main():
         print(f"Data: {paths.data_dir()}")
         print(f"State: {paths.state_dir()}")
         print(f"Cache: {paths.cache_dir()}")
-        print("Server would run here (not yet implemented)")
 
-        # In the future, this would start the actual server
-        # For now, just simulate
-        import time
-
+        # Server implementation placeholder - replace with actual MCP server implementation
+        print("Server daemon running. Press Ctrl+C to stop.")
         while True:
             time.sleep(1)
 

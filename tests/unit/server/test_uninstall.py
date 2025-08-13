@@ -6,14 +6,8 @@ from vldmcp import paths
 from vldmcp.cli.lifecycle import uninstall
 
 
-def test_uninstall_removes_directory(tmp_path, monkeypatch):
+def test_uninstall_removes_directory(xdg_dirs):
     """Test that uninstall removes the vldmcp directories."""
-    # Patch XDG directories
-    monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "data"))
-    monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path / "state"))
-    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
-    monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path / "cache"))
-    monkeypatch.setenv("XDG_RUNTIME_DIR", str(tmp_path / "runtime"))
 
     runner = CliRunner()
 
@@ -35,14 +29,8 @@ def test_uninstall_removes_directory(tmp_path, monkeypatch):
     assert "Uninstallation complete!" in result.output
 
 
-def test_uninstall_with_y_flag_removes_directory(tmp_path, monkeypatch):
+def test_uninstall_with_y_flag_removes_directory(xdg_dirs):
     """Test that uninstall with -y flag removes the directory without prompting."""
-    # Patch XDG directories
-    monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "data"))
-    monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path / "state"))
-    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
-    monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path / "cache"))
-    monkeypatch.setenv("XDG_RUNTIME_DIR", str(tmp_path / "runtime"))
 
     runner = CliRunner()
 
@@ -56,14 +44,8 @@ def test_uninstall_with_y_flag_removes_directory(tmp_path, monkeypatch):
     assert "Uninstallation complete!" in result.output
 
 
-def test_uninstall_prompts_without_yes_flag(tmp_path, monkeypatch):
+def test_uninstall_prompts_without_yes_flag(xdg_dirs):
     """Test that uninstall prompts for confirmation without --yes flag."""
-    # Patch XDG directories
-    monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "data"))
-    monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path / "state"))
-    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
-    monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path / "cache"))
-    monkeypatch.setenv("XDG_RUNTIME_DIR", str(tmp_path / "runtime"))
 
     runner = CliRunner()
 
@@ -78,14 +60,8 @@ def test_uninstall_prompts_without_yes_flag(tmp_path, monkeypatch):
     assert "Continue?" in result.output
 
 
-def test_uninstall_confirms_removal_with_prompt(tmp_path, monkeypatch):
+def test_uninstall_confirms_removal_with_prompt(xdg_dirs):
     """Test that uninstall removes directory when user confirms."""
-    # Patch XDG directories
-    monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "data"))
-    monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path / "state"))
-    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
-    monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path / "cache"))
-    monkeypatch.setenv("XDG_RUNTIME_DIR", str(tmp_path / "runtime"))
 
     runner = CliRunner()
 
@@ -100,14 +76,8 @@ def test_uninstall_confirms_removal_with_prompt(tmp_path, monkeypatch):
     assert "Uninstallation complete!" in result.output
 
 
-def test_uninstall_handles_missing_installation(tmp_path, monkeypatch):
+def test_uninstall_handles_missing_installation(xdg_dirs):
     """Test that uninstall handles missing installation gracefully."""
-    # Patch XDG directories
-    monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "data"))
-    monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path / "state"))
-    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
-    monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path / "cache"))
-    monkeypatch.setenv("XDG_RUNTIME_DIR", str(tmp_path / "runtime"))
 
     runner = CliRunner()
 
@@ -118,14 +88,8 @@ def test_uninstall_handles_missing_installation(tmp_path, monkeypatch):
     assert "No vldmcp installation found." in result.output
 
 
-def test_uninstall_removes_nested_content(tmp_path, monkeypatch):
+def test_uninstall_removes_nested_content(xdg_dirs):
     """Test that uninstall removes all nested directories and files."""
-    # Patch XDG directories
-    monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "data"))
-    monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path / "state"))
-    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
-    monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path / "cache"))
-    monkeypatch.setenv("XDG_RUNTIME_DIR", str(tmp_path / "runtime"))
 
     runner = CliRunner()
 
@@ -148,14 +112,8 @@ def test_uninstall_removes_nested_content(tmp_path, monkeypatch):
     assert "Uninstallation complete!" in result.output
 
 
-def test_uninstall_with_purge_removes_all_data(tmp_path, monkeypatch):
+def test_uninstall_with_purge_removes_all_data(xdg_dirs):
     """Test that uninstall with --purge removes all data including keys."""
-    # Patch XDG directories
-    monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "data"))
-    monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path / "state"))
-    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
-    monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path / "cache"))
-    monkeypatch.setenv("XDG_RUNTIME_DIR", str(tmp_path / "runtime"))
 
     runner = CliRunner()
 
@@ -183,14 +141,8 @@ def test_uninstall_with_purge_removes_all_data(tmp_path, monkeypatch):
     assert "Uninstallation complete!" in result.output
 
 
-def test_uninstall_without_purge_keeps_keys(tmp_path, monkeypatch):
+def test_uninstall_without_purge_keeps_keys(xdg_dirs):
     """Test that uninstall without --purge keeps user keys and config."""
-    # Patch XDG directories
-    monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "data"))
-    monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path / "state"))
-    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
-    monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path / "cache"))
-    monkeypatch.setenv("XDG_RUNTIME_DIR", str(tmp_path / "runtime"))
 
     runner = CliRunner()
 

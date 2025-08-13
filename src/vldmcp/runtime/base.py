@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Optional
 
 from .. import paths, crypto
+from ..config import get_config
 from ..models.disk_usage import DiskUsage, InstallUsage, McpUsage
 from ..models.info import ClientInfo
 
@@ -130,8 +131,6 @@ class RuntimeBackend(ABC):
         Returns:
             ClientInfo with current runtime status and configuration
         """
-        from ..config import get_config
-
         config = get_config()
 
         # Get ports from config
@@ -139,17 +138,28 @@ class RuntimeBackend(ABC):
         if hasattr(config.runtime, "ports"):
             ports = config.runtime.ports
 
+        # Get server PID if running
+        server_pid = None
+        pid_file = paths.pid_file_path()
+        if pid_file.exists():
+            try:
+                server_pid = pid_file.read_text().strip()
+            except (OSError, ValueError):
+                pass
+
         return ClientInfo(
             runtime_type=self.__class__.__name__.replace("Backend", "").lower(),
             server_status=self.deploy_status(),
+            server_pid=server_pid,
             ports=ports,
         )
 
-    def uninstall(self, purge: bool = False) -> list[tuple[str, Path]]:
+    def uninstall(self, config: bool = False, purge: bool = False) -> list[tuple[str, Path]]:
         """Uninstall the runtime environment.
 
         Args:
-            purge: If True, also remove user keys and config
+            config: If True, also remove config, state, and runtime dirs
+            purge: If True, also remove user keys and all user data
 
         Returns:
             List of (description, path) tuples that were removed
@@ -165,13 +175,21 @@ class RuntimeBackend(ABC):
                 shutil.rmtree(dir_path)
                 dirs_removed.append((desc, dir_path))
 
-        if purge:
-            # Also remove keys, config, and state
+        # --config flag: also remove config, state, and runtime
+        if config or purge:
             for desc, dir_path in [
                 ("Configuration", paths.config_dir()),
-                ("User data (including keys)", paths.data_dir()),
                 ("State data", paths.state_dir()),
                 ("Runtime data", paths.runtime_dir()),
+            ]:
+                if dir_path.exists():
+                    shutil.rmtree(dir_path)
+                    dirs_removed.append((desc, dir_path))
+
+        # --purge flag: also remove user data (including keys)
+        if purge:
+            for desc, dir_path in [
+                ("User data (including keys)", paths.data_dir()),
             ]:
                 if dir_path.exists():
                     shutil.rmtree(dir_path)

@@ -1,6 +1,7 @@
 """Podman container runtime backend."""
 
 import json
+import shutil
 import subprocess
 from pathlib import Path
 from typing import Optional
@@ -16,8 +17,20 @@ class PodmanBackend(RuntimeBackend):
 
     def build(self, dockerfile_path: Path) -> bool:
         """Build container with podman."""
+        # Build with version spec if we have a known version
+        version_spec = f"=={__version__}" if __version__ != "unknown" else ""
+
         result = subprocess.run(
-            ["podman", "build", "-t", "vldmcp:latest", str(dockerfile_path.parent)], capture_output=True
+            [
+                "podman",
+                "build",
+                "--build-arg",
+                f"VERSION_SPEC={version_spec}",
+                "-t",
+                "vldmcp:latest",
+                str(dockerfile_path.parent),
+            ],
+            capture_output=True,
         )
         return result.returncode == 0
 
@@ -164,20 +177,13 @@ class PodmanBackend(RuntimeBackend):
         return True
 
     def _create_dockerfile(self, base_dir: Path) -> None:
-        """Create Dockerfile for PyPI installation."""
-        version_spec = __version__ if __version__ != "unknown" else ""
+        """Copy Dockerfile template to build directory."""
+        # Get the template Dockerfile from the runtime package
+        template_path = Path(__file__).parent / "assets" / "Dockerfile"
+        target_path = base_dir / "Dockerfile"
 
-        dockerfile_content = f"""FROM python:3.10-slim
-
-WORKDIR /app
-
-# Install from PyPI
-RUN pip install vldmcp{f'=={version_spec}' if version_spec else ''}
-
-# Version: {__version__}
-CMD ["vldmcpd"]
-"""
-        (base_dir / "Dockerfile").write_text(dockerfile_content)
+        # Copy the template (version is handled via build args)
+        shutil.copy2(template_path, target_path)
 
     def upgrade(self) -> bool:
         """Upgrade vldmcp (pip upgrade + rebuild container)."""

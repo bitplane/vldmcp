@@ -37,10 +37,10 @@ def test_load_nonexistent_key(tmp_path):
     assert crypto.load_key(key_path) is None
 
 
-def test_ensure_user_key(tmp_path, monkeypatch):
+def test_ensure_user_key(xdg_dirs, monkeypatch):
     """Test ensure_user_key creates key if it doesn't exist."""
-    # Patch paths to use tmp_path
-    monkeypatch.setattr(paths, "user_key_path", lambda: tmp_path / "keys" / "user.key")
+    # Patch paths to use xdg_dirs
+    monkeypatch.setattr(paths, "user_key_path", lambda: xdg_dirs / "data" / "vldmcp" / "keys" / "user.key")
 
     # First call should generate key
     key1 = crypto.ensure_user_key()
@@ -52,18 +52,18 @@ def test_ensure_user_key(tmp_path, monkeypatch):
     assert key1 == key2
 
     # Check file was created with correct permissions
-    key_path = tmp_path / "keys" / "user.key"
+    key_path = xdg_dirs / "data" / "vldmcp" / "keys" / "user.key"
     assert key_path.exists()
     assert oct(key_path.stat().st_mode)[-3:] == "600"
     assert oct(key_path.parent.stat().st_mode)[-3:] == "700"
 
 
-def test_ensure_node_key(tmp_path, monkeypatch):
+def test_ensure_node_key(xdg_dirs, monkeypatch):
     """Test ensure_node_key creates key if it doesn't exist."""
 
-    # Patch paths to use tmp_path
+    # Patch paths to use xdg_dirs
     def mock_node_key_path(node_id):
-        return tmp_path / "nodes" / node_id / "key"
+        return xdg_dirs / "state" / "vldmcp" / "nodes" / node_id / "key"
 
     monkeypatch.setattr(paths, "node_key_path", mock_node_key_path)
 
@@ -81,7 +81,7 @@ def test_ensure_node_key(tmp_path, monkeypatch):
     assert key3 != key1
 
     # Check files were created with correct permissions
-    key_path = tmp_path / "nodes" / "node123" / "key"
+    key_path = xdg_dirs / "state" / "vldmcp" / "nodes" / "node123" / "key"
     assert key_path.exists()
     assert oct(key_path.stat().st_mode)[-3:] == "600"
     assert oct(key_path.parent.stat().st_mode)[-3:] == "700"

@@ -28,7 +28,7 @@ def info():
     # Get client info
     client_info = runtime.info()
 
-    # TODO: Get server info from actual server once daemon is implemented
+    # Get server info (currently returns defaults until daemon is implemented)
     server_info = ServerInfo()
 
     # Combine into response
