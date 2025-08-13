@@ -107,15 +107,15 @@ def uninstall(purge, yes):
 
 
 @server.command()
-def build():
-    """Build the server container."""
-    click.echo("Building server container...")
+def upgrade():
+    """Upgrade vldmcp to latest version."""
+    click.echo("Upgrading vldmcp...")
 
     runtime = get_runtime()
-    if runtime.build_if_needed():
-        click.echo("Build complete!")
+    if runtime.upgrade():
+        click.echo("Upgrade complete!")
     else:
-        click.echo("No installation found. Run 'vldmcp server install' first.")
+        click.echo("Upgrade failed!")
         raise SystemExit(1)
 
 
@@ -158,20 +158,6 @@ def stop():
     else:
         click.echo("No server running or failed to stop")
         raise SystemExit(1)
-
-
-@server.command()
-def status():
-    """Check the status of the vldmcp server."""
-    runtime = get_runtime()
-    status = runtime.deploy_status()
-
-    if status == "running":
-        click.echo("Server is running")
-    elif status == "stopped":
-        click.echo("Server is stopped")
-    else:
-        click.echo("Server is not running")
 
 
 @server.command()

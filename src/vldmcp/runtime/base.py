@@ -8,6 +8,7 @@ from typing import Optional
 
 from .. import paths, crypto
 from ..models.disk_usage import DiskUsage, InstallUsage, McpUsage
+from ..models.info import ClientInfo
 
 
 class RuntimeBackend(ABC):
@@ -113,6 +114,36 @@ class RuntimeBackend(ABC):
             True if build succeeded or not needed, False if build failed
         """
         return True  # Default: no build needed
+
+    @abstractmethod
+    def upgrade(self) -> bool:
+        """Upgrade vldmcp to latest version (runtime-specific implementation).
+
+        Returns:
+            True if upgrade succeeded, False otherwise
+        """
+        pass
+
+    def info(self) -> ClientInfo:
+        """Get client-side information about the runtime.
+
+        Returns:
+            ClientInfo with current runtime status and configuration
+        """
+        from ..config import get_config
+
+        config = get_config()
+
+        # Get ports from config
+        ports = []
+        if hasattr(config.runtime, "ports"):
+            ports = config.runtime.ports
+
+        return ClientInfo(
+            runtime_type=self.__class__.__name__.replace("Backend", "").lower(),
+            server_status=self.deploy_status(),
+            ports=ports,
+        )
 
     def uninstall(self, purge: bool = False) -> list[tuple[str, Path]]:
         """Uninstall the runtime environment.

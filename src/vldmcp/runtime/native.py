@@ -47,6 +47,16 @@ class NativeBackend(RuntimeBackend):
         # Would read from log file in real implementation
         return "Native process logs not yet implemented"
 
+    def upgrade(self) -> bool:
+        """Upgrade vldmcp using pip."""
+        try:
+            result = subprocess.run(
+                ["pip", "install", "--upgrade", "vldmcp"], capture_output=True, text=True, check=True
+            )
+            return result.returncode == 0
+        except subprocess.CalledProcessError:
+            return False
+
     def deploy_start(self, debug: bool = False) -> Optional[str]:
         """Deploy and start native server."""
         # Auto-deploy if needed

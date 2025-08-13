@@ -1,7 +1,5 @@
 """Pretty printing utilities for vldmcp."""
 
-import subprocess
-
 
 def pprint_size(size_bytes: int) -> str:
     """Convert bytes to human-readable size string.
@@ -15,20 +13,13 @@ def pprint_size(size_bytes: int) -> str:
     if size_bytes == 0:
         return "0B"
 
-    try:
-        output = subprocess.run(
-            ["numfmt", "--to=iec", str(size_bytes)], capture_output=True, text=True, check=True
-        ).stdout.strip()
-        return output if output else f"{size_bytes}B"
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        # Fallback if numfmt not available
-        units = ["B", "K", "M", "G", "T", "P"]
-        size = float(size_bytes)
-        for unit in units[:-1]:
-            if size < 1024.0:
-                return f"{size:.1f}{unit}"
-            size /= 1024.0
-        return f"{size:.1f}{units[-1]}"
+    units = ["B", "K", "M", "G", "T", "P"]
+    size = float(size_bytes)
+    for unit in units[:-1]:
+        if size < 1024.0:
+            return f"{size:.1f}{unit}"
+        size /= 1024.0
+    return f"{size:.1f}{units[-1]}"
 
 
 def pprint_dict(obj: dict | list, prefix: str = "") -> None:

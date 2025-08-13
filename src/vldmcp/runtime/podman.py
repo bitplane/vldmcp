@@ -179,6 +179,21 @@ CMD ["vldmcpd"]
 """
         (base_dir / "Dockerfile").write_text(dockerfile_content)
 
+    def upgrade(self) -> bool:
+        """Upgrade vldmcp (pip upgrade + rebuild container)."""
+        try:
+            # First upgrade the host package
+            result = subprocess.run(
+                ["pip", "install", "--upgrade", "vldmcp"], capture_output=True, text=True, check=True
+            )
+            if result.returncode != 0:
+                return False
+
+            # Then rebuild the container with new version
+            return self.build_if_needed()
+        except subprocess.CalledProcessError:
+            return False
+
     def deploy_start(self, debug: bool = False) -> Optional[str]:
         """Deploy and start container server."""
         # Auto-deploy if needed
