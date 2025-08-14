@@ -16,6 +16,7 @@ dependencies = [
     "gitpython",
     "pydantic",
     "pydantic-settings",
+    "pynacl",
     "tomli",
     "veilid",
     "mnemonic"
@@ -29,8 +30,7 @@ dev = [
     "pytest-cov",
     "build",
     "twine",
-    "ruff",
-    "pynacl"
+    "ruff"
 ]
 
 [project.urls]

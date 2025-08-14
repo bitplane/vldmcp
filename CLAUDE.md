@@ -52,3 +52,8 @@ make clean
 * Do not use mocks in tests unless required; they make a mockery of our
   codebase.
 * And once again, it's important to remember: Don't use import in functions.
+
+## todo
+
+I'll update `todo.md` with next steps while you are working. Keep the todo list
+up to date, I'll review, commit, push etc and add the next steps.

@@ -12,7 +12,7 @@ This module provides:
 - generate_mnemonic_and_key(): create both in one go
 - ensure_user_key()/ensure_node_key(): same semantics as before
 
-NOTE: Add `mnemonic` to project deps. `pynacl` is optional for ed25519 helpers.
+NOTE: Both `mnemonic` and `pynacl` are required dependencies.
 """
 
 from __future__ import annotations
@@ -21,21 +21,11 @@ import secrets
 from pathlib import Path
 from typing import Optional, Tuple
 
+from mnemonic import Mnemonic
+from nacl.signing import SigningKey
+from nacl.encoding import RawEncoder
+
 from . import paths
-
-# Required for BIP-39
-try:
-    from mnemonic import Mnemonic  # Trezor lib
-except Exception as e:  # pragma: no cover
-    raise RuntimeError("The 'mnemonic' package is required for seed phrases. Add `mnemonic` to dependencies.") from e
-
-# Optional: only needed if you want an Ed25519 keypair from the seed
-try:
-    from nacl.signing import SigningKey
-    from nacl.encoding import RawEncoder
-except Exception:  # pragma: no cover
-    SigningKey = None  # type: ignore[assignment]
-    RawEncoder = None  # type: ignore[assignment]
 
 
 # -------------------------------
@@ -145,10 +135,8 @@ def generate_mnemonic_and_key() -> Tuple[str, bytes]:
 def ed25519_keypair_from_seed(seed32: bytes) -> Tuple[bytes, bytes]:
     """Return (public_key32, private_key64) from a 32-byte Ed25519 seed.
 
-    Requires PyNaCl. Not needed for storage; useful for signing/tests.
+    Not needed for storage; useful for signing/tests.
     """
-    if SigningKey is None or RawEncoder is None:
-        raise RuntimeError("PyNaCl is required for ed25519 helpers. Add `pynacl` to dependencies.")
     if len(seed32) != 32:
         raise ValueError("Seed must be 32 bytes for Ed25519.")
     sk = SigningKey(seed32)
