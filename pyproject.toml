@@ -6,7 +6,7 @@ authors = [
     { name = "Gareth Davidson", email = "gaz@bitplane.net" }
 ]
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 
 
 dependencies = [
@@ -17,12 +17,13 @@ dependencies = [
     "pydantic",
     "pydantic-settings",
     "pynacl",
-    "tomli",
+    "tomli-w",
     "veilid",
     "mnemonic"
 ]
 
 [project.optional-dependencies]
+# not pydoc-markdown, circular dep
 dev = [
     "pre-commit",
     "pytest",

@@ -1,8 +1,3 @@
-"""vldmcp - A distributed (FoaF) MCP server using veilid and podman."""
+from .util.version import get_version
 
-from importlib.metadata import version, PackageNotFoundError
-
-try:
-    __version__ = version("vldmcp")
-except PackageNotFoundError:
-    __version__ = "unknown"
+__version__ = get_version()

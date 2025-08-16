@@ -2,6 +2,15 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Project summary
+
+vldmcp is a distributed Friend-of-a-Friend (FoaF) MCP server built on the Veilid
+network and podman containers. It enables bots and humans to collaboratively
+build and share capabilities, vote on services, and manage resources in a
+decentralized peer-to-peer network. The project provides a CLI, REST API,
+and TUI for managing Veilid identities, containerized services, and P2P
+connections.
+
 ## Commands
 
 ### Build and Development
@@ -22,7 +31,7 @@ make clean
 ## CODING STANDARDS
 
 * IMPORTANT: DON'T USE IMPORT IN FUNCTIONS
-* Python 3.10+ required. So type hints rarely need `typing` module.
+* Python 3.11+ required. So type hints rarely need `typing` module.
 * Line length for code: 120 characters (configured in `pyproject.toml`).
 * Line length for Markdown is 80 wide so it fits in a standard terminal.
 * All imports should be at module level (not in functions).

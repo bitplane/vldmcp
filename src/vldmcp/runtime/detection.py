@@ -1,25 +1,11 @@
 """Runtime detection and configuration for vldmcp deployments."""
 
-import subprocess
+import shutil
 
-from .. import __version__
+from ..util.version import is_development
 from ..config import get_config, set_runtime_type
 from . import RuntimeBackend, NativeBackend, PodmanBackend
 from ..models.config import RUNTIME_TYPES
-
-
-def is_git_development() -> bool:
-    """Check if we're running from a git development environment."""
-    return "+" in __version__ and __version__ != "unknown"
-
-
-def has_command(cmd: str) -> bool:
-    """Check if a command is available in PATH."""
-    try:
-        subprocess.run([cmd, "--version"], capture_output=True, check=True)
-        return True
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        return False
 
 
 def guess_runtime() -> str:
@@ -33,13 +19,13 @@ def guess_runtime() -> str:
     Returns:
         Runtime name as string (e.g., "native", "podman")
     """
-    if is_git_development():
+    if is_development():
         return "native"
 
-    if has_command("podman"):
+    if shutil.which("podman"):
         return "podman"
 
-    if has_command("vldmcpd"):
+    if shutil.which("vldmcpd"):
         return "native"
 
     # Default fallback - should rarely be reached
