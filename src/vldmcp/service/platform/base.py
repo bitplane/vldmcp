@@ -100,7 +100,8 @@ class Platform(Service):
         # Save config to establish deployment
         config_service = self.get_service("config")
         if config_service:
-            config_service.save()
+            config = config_service.get_config()
+            config_service.save_config(config)
 
         # Build the platform
         return self.build()

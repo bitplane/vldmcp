@@ -35,15 +35,8 @@ def deploy(platform, recover, show_seed):
     """Deploy vldmcp platform and prepare environment."""
     click.echo("Setting up vldmcp...")
 
-    # Set platform type if specified
-    if platform != "guess":
-        click.echo(f"Using {platform} platform")
-        platform_instance = get_platform()
-        config_service = platform_instance.get_service("config")
-        config_service.set_platform_type(platform)
-
     # Handle seed phrase recovery or generation
-    platform_instance = get_platform()
+    platform_instance = get_platform(platform)
     user_key_path = platform_instance.storage.user_key_path()
     crypto_service = platform_instance.get_service("crypto")
 

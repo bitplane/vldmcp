@@ -31,6 +31,7 @@ make clean
 ## CODING STANDARDS
 
 * IMPORTANT: DON'T USE IMPORT IN FUNCTIONS
+* IMPORTANT: DON'T ADD MORE FUNCTIONALITY THAN WHAT WAS ASKED FOR
 * Python 3.11+ required. So type hints rarely need `typing` module.
 * Line length for code: 120 characters (configured in `pyproject.toml`).
 * Line length for Markdown is 80 wide so it fits in a standard terminal.
