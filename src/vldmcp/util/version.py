@@ -1,12 +1,12 @@
 import subprocess
 from importlib.metadata import version, PackageNotFoundError
 from pathlib import Path
-import vldmcp
 
 
 def is_development() -> bool:
     # cheap check, no branching elsewhere
-    return (Path(vldmcp.__file__).parent.parent.parent / ".git").exists()
+    here = Path(__file__).resolve()
+    return (here.parents[3] / ".git").exists()
 
 
 def _git_describe() -> str | None:

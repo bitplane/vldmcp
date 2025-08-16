@@ -10,17 +10,18 @@ requires-python = ">=3.11"
 
 
 dependencies = [
+    "blake3",
     "click",
     "fastapi",
     "fastmcp",
     "gitpython",
+    "mnemonic",
     "pydantic",
     "pydantic-settings",
     "pynacl",
     "psutil",
     "tomli-w",
-    "veilid",
-    "mnemonic"
+    "veilid"
 ]
 
 [project.optional-dependencies]

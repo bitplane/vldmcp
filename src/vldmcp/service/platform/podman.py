@@ -4,7 +4,6 @@ import json
 import shutil
 import subprocess
 from pathlib import Path
-from typing import Optional
 
 from ... import __version__
 from ..system.config import get_config
@@ -18,8 +17,9 @@ class PodmanPlatform(PlatformBackend):
     def _get_podman_config(self):
         """Get podman-specific configuration values."""
         config = get_config()
-        if hasattr(config.runtime, "image_name") and hasattr(config.runtime, "container_name"):
-            return config.runtime.image_name, config.runtime.container_name
+        plat = getattr(config, "platform", None)
+        if hasattr(plat, "image_name") and hasattr(plat, "container_name"):
+            return plat.image_name, plat.container_name
         # Fallback to defaults if config doesn't have podman-specific fields
         return "vldmcp:latest", "vldmcp-server"
 
@@ -75,14 +75,14 @@ class PodmanPlatform(PlatformBackend):
         )
         return f"container:{pid_result.stdout.strip()}"
 
-    def stop(self, server_id: str) -> bool:
+    def stop(self, server_id: str | None = None) -> bool:
         """Stop podman container."""
         _, container_name = self._get_podman_config()
         subprocess.run(["podman", "stop", container_name], check=True)
         subprocess.run(["podman", "rm", container_name], check=True)
         return True
 
-    def status(self, server_id: str) -> str:
+    def status(self, server_id: str | None = None) -> str:
         """Check podman container status."""
         _, container_name = self._get_podman_config()
         result = subprocess.run(
@@ -95,13 +95,13 @@ class PodmanPlatform(PlatformBackend):
                 return "stopped"
         return "not found"
 
-    def logs(self, server_id: str) -> str:
+    def logs(self, server_id: str | None = None) -> str:
         """Get podman container logs."""
         _, container_name = self._get_podman_config()
         result = subprocess.run(["podman", "logs", container_name], capture_output=True, text=True)
         return result.stdout
 
-    def stream_logs(self, server_id: str) -> None:
+    def stream_logs(self, server_id: str | None = None) -> None:
         """Stream podman container logs to stdout."""
         _, container_name = self._get_podman_config()
         subprocess.run(["podman", "logs", "-f", container_name], check=True)
@@ -178,10 +178,10 @@ class PodmanPlatform(PlatformBackend):
 
         return self.build(dockerfile)
 
-    def install(self) -> bool:
-        """Install container environment (creates Dockerfile)."""
-        # Call parent install for basic setup
-        if not super().install():
+    def deploy(self) -> bool:
+        """Deploy container environment (install and create Dockerfile)."""
+        # Call parent deploy for basic setup
+        if not super().deploy():
             return False
 
         # Set up install directory for container assets
@@ -217,69 +217,6 @@ class PodmanPlatform(PlatformBackend):
             return self.build_if_needed()
         except subprocess.CalledProcessError:
             return False
-
-    def deploy_start(self, debug: bool = False) -> Optional[str]:
-        """Deploy and start container server."""
-        # Auto-deploy if needed
-        if not self.deploy():
-            return None
-
-        # Check if already running
-        pid_file = self.storage.pid_file_path()
-        if pid_file.exists():
-            try:
-                pid_content = pid_file.read_text().strip()
-                # Check if still running
-                if pid_content.startswith("container:"):
-                    status = self.status(pid_content)
-                    if status == "running":
-                        return None  # Already running
-            except (OSError, ValueError):
-                pass
-            # Remove stale PID file
-            pid_file.unlink()
-
-        # Get config for ports and other settings
-        config = get_config()
-
-        # Create mount mappings
-        mounts = {
-            str(self.storage.state_dir()): "/var/lib/vldmcp:rw",
-            str(self.storage.cache_dir()): "/var/cache/vldmcp:rw",
-            str(self.storage.config_dir()): "/etc/vldmcp:ro",
-            str(self.storage.runtime_dir()): "/run/vldmcp:rw",
-            str(self.storage.www_dir()): "/var/lib/vldmcp/www:rw",
-        }
-
-        # Get ports from config
-        ports = []
-        if hasattr(config.runtime, "ports"):
-            ports = config.runtime.ports
-
-        # Start container
-        server_id = self.start(mounts, ports)
-
-        # Write PID file
-        pid_file.parent.mkdir(parents=True, exist_ok=True)
-        pid_file.write_text(server_id)
-
-        return server_id
-
-    def deploy_stop(self) -> bool:
-        """Stop container server."""
-        pid_file = self.storage.pid_file_path()
-
-        if not pid_file.exists():
-            return False
-
-        pid_content = pid_file.read_text().strip()
-        result = self.stop(pid_content)
-
-        # Remove PID file
-        if result:
-            pid_file.unlink()
-
-        return result
 
     def deploy_status(self) -> str:
         """Get container server status."""

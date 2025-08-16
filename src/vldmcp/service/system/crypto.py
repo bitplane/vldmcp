@@ -232,15 +232,23 @@ class CryptoService(Service):
         """Generate a node ID from a key.
 
         Args:
-            key: 32-byte key
+            key: 32-byte private key
 
         Returns:
-            Hex string node ID
+            40-character hex string node ID (derived from public key hash)
         """
         if len(key) != 32:
             raise ValueError(f"Key must be exactly 32 bytes, got {len(key)}")
 
-        return key.hex()
+        from nacl.signing import SigningKey
+        import blake3
+
+        # Derive public key from private key
+        signing_key = SigningKey(key)
+        public_key = signing_key.verify_key.encode()
+
+        # Hash the public key to get node ID
+        return blake3.blake3(public_key).hexdigest()[:40]
 
 
 # Global crypto service instance for backward compatibility

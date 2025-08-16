@@ -54,6 +54,21 @@ class Service(ABC):
             return "running"
         return "stopped"
 
+    def remove(self, config: bool = False, purge: bool = False) -> list[tuple[str, str]]:
+        """Remove this service and clean up resources.
+
+        Default implementation does nothing.
+        Subclasses should override to provide cleanup logic.
+
+        Args:
+            config: If True, also remove configuration files
+            purge: If True, also remove all user data
+
+        Returns:
+            List of (description, path) tuples for removed items
+        """
+        return []
+
     # Hosting capabilities - services can host other services
     def add_service(self, service):
         """Add a child service to this service."""

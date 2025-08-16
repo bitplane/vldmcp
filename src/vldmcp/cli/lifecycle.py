@@ -32,8 +32,8 @@ def server():
     is_flag=True,
     help="Display seed phrase after generating new identity",
 )
-def install(platform, recover, show_seed):
-    """Install base assets and prepare platform."""
+def deploy(platform, recover, show_seed):
+    """Deploy vldmcp platform and prepare environment."""
     from .. import crypto
 
     click.echo("Setting up vldmcp...")
@@ -87,13 +87,13 @@ def install(platform, recover, show_seed):
 
     platform = get_platform()
     if platform.deploy():
-        click.echo("Installation complete!")
+        click.echo("Deployment complete!")
     else:
-        click.echo("Installation failed!")
+        click.echo("Deployment failed!")
         raise SystemExit(1)
 
 
-@server.command()
+@server.command("remove")
 @click.option(
     "--config",
     is_flag=True,
@@ -110,8 +110,8 @@ def install(platform, recover, show_seed):
     is_flag=True,
     help="Skip confirmation prompt",
 )
-def uninstall(config, purge, yes):
-    """Uninstall the vldmcp server and optionally remove all user data."""
+def remove_cmd(config, purge, yes):
+    """Remove the vldmcp server and optionally remove all user data."""
     platform = get_platform()
 
     # Get list of what will be removed (for display)
@@ -161,12 +161,12 @@ def uninstall(config, purge, yes):
         click.confirm("\nContinue?", abort=True)
 
     # Do the actual removal
-    dirs_removed = platform.uninstall(config=config, purge=purge)
+    dirs_removed = platform.remove(config=config, purge=purge)
 
     for desc, path in dirs_removed:
         click.echo(f"Removed {desc}: {path}")
 
-    click.echo("Uninstallation complete!")
+    click.echo("Removal complete!")
 
 
 @server.command()
@@ -199,14 +199,17 @@ def start(debug):
 
     click.echo("Starting vldmcp server...")
 
-    server_id = platform.deploy_start(debug=debug)
-    if server_id:
-        if debug:
-            click.echo(f"Server started in debug mode (PID: {server_id})")
-        else:
-            click.echo(f"Server started! (PID: {server_id})")
-    else:
-        click.echo("Failed to start server")
+    try:
+        # Ensure deployment is ready
+        if not platform.deploy():
+            click.echo("Failed to deploy server")
+            raise SystemExit(1)
+
+        # Start the service
+        platform.start()
+        click.echo("Server started!")
+    except Exception as e:
+        click.echo(f"Failed to start server: {e}")
         raise SystemExit(1)
 
 
@@ -216,10 +219,11 @@ def stop():
     click.echo("Stopping vldmcp server...")
 
     platform = get_platform()
-    if platform.deploy_stop():
+    try:
+        platform.stop()
         click.echo("Server stopped!")
-    else:
-        click.echo("No server running or failed to stop")
+    except Exception as e:
+        click.echo(f"Failed to stop server: {e}")
         raise SystemExit(1)
 
 
@@ -232,7 +236,7 @@ def export_seed():
     user_key_path = platform.storage.user_key_path()
 
     if not user_key_path.exists():
-        click.echo("❌ No identity found. Run 'vldmcp server install' first.")
+        click.echo("❌ No identity found. Run 'vldmcp server deploy' first.")
         raise SystemExit(1)
 
     click.echo("⚠️  This will display your seed phrase.")
@@ -263,15 +267,19 @@ def export_seed():
 def logs():
     """View the server logs."""
     platform = get_platform()
-    # Get PID from file and stream logs
-    platform = get_platform()
-    pid_file = platform.storage.pid_file_path()
-    if not pid_file.exists():
-        click.echo("Server not running")
-        return
 
-    pid_content = pid_file.read_text().strip()
-    platform.stream_logs(pid_content)
+    # For native platform, no server_id needed
+    if platform.__class__.__name__ == "NativePlatform":
+        platform.stream_logs(None)
+    else:
+        # For container platforms, get server_id from PID file
+        pid_file = platform.storage.pid_file_path()
+        if not pid_file.exists():
+            click.echo("Server not running")
+            return
+
+        server_id = pid_file.read_text().strip()
+        platform.stream_logs(server_id)
 
 
 @server.command()

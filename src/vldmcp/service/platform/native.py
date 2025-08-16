@@ -85,7 +85,7 @@ class NativePlatform(PlatformBackend):
         except subprocess.CalledProcessError:
             return False
 
-    def logs(self) -> str:
+    def logs(self, server_id: str | None = None) -> str:
         """Get platform logs."""
         # TODO: Implement actual log retrieval
         return "Native platform logs not yet implemented"

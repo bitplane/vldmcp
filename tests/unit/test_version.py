@@ -122,12 +122,12 @@ def test_get_version_not_development():
 
 def test_is_development_no_git_dir(tmp_path):
     """Test is_development when no .git directory exists."""
-    # Create a fake vldmcp module in temp directory
-    fake_vldmcp = tmp_path / "vldmcp"
-    fake_vldmcp.mkdir()
-    fake_file = fake_vldmcp / "__init__.py"
+    # Create a fake version.py file in temp directory structure
+    fake_src = tmp_path / "src" / "vldmcp" / "util"
+    fake_src.mkdir(parents=True)
+    fake_file = fake_src / "version.py"
     fake_file.write_text("")
 
-    # Mock vldmcp.__file__ to point to our temp file
-    with patch("vldmcp.util.version.vldmcp.__file__", str(fake_file)):
+    # Mock __file__ to point to our temp file (no .git 3 levels up)
+    with patch("vldmcp.util.version.__file__", str(fake_file)):
         assert is_development() is False

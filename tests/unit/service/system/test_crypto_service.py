@@ -137,13 +137,16 @@ def test_load_key_invalid_size(crypto_service):
 
 
 def test_generate_node_id(crypto_service):
-    """Test generate_node_id creates hex string from key."""
+    """Test generate_node_id creates secure hash from public key."""
     key = b"a" * 32
     node_id = crypto_service.generate_node_id(key)
 
     assert isinstance(node_id, str)
-    assert len(node_id) == 64  # 32 bytes * 2 hex chars
-    assert node_id == "61" * 32  # "a" in hex is 61
+    assert len(node_id) == 40  # blake3 hash truncated to 40 chars
+    # Should be deterministic for same key
+    assert node_id == crypto_service.generate_node_id(key)
+    # Should not be the raw key
+    assert node_id != key.hex()
 
 
 def test_generate_node_id_invalid_length(crypto_service):

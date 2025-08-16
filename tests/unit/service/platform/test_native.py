@@ -16,16 +16,15 @@ def test_native_platform_creates_core_services(xdg_dirs):
     assert platform.get_service("storage") is not None
     assert platform.get_service("keys") is not None
     assert platform.get_service("config") is not None
-    assert platform.get_service("installer") is not None
     assert platform.get_service("daemon") is not None
 
 
-def test_native_install_creates_directories(xdg_dirs):
-    """Test that NativePlatform.install() creates required directories."""
+def test_native_deploy_creates_directories(xdg_dirs):
+    """Test that NativePlatform.deploy() creates required directories."""
     platform = NativePlatform()
 
-    # Run install
-    result = platform.install()
+    # Run deploy
+    result = platform.deploy()
 
     assert result is True
     assert platform.storage.data_dir().exists()
@@ -36,8 +35,8 @@ def test_native_install_creates_directories(xdg_dirs):
     assert platform.storage.user_key_path().exists()
 
 
-def test_native_install_preserves_existing_key(xdg_dirs):
-    """Test that NativePlatform.install() preserves existing user key."""
+def test_native_deploy_preserves_existing_key(xdg_dirs):
+    """Test that NativePlatform.deploy() preserves existing user key."""
     platform = NativePlatform()
 
     # Create a key file first
@@ -47,8 +46,8 @@ def test_native_install_preserves_existing_key(xdg_dirs):
     test_key = test_key[:32]  # Make it exactly 32 bytes
     key_path.write_bytes(test_key)
 
-    # Run install
-    result = platform.install()
+    # Run deploy
+    result = platform.deploy()
 
     assert result is True
     assert key_path.exists()
@@ -56,29 +55,29 @@ def test_native_install_preserves_existing_key(xdg_dirs):
     assert key_path.read_bytes() == test_key
 
 
-def test_native_install_idempotent(xdg_dirs):
-    """Test that NativePlatform.install() can be run multiple times."""
+def test_native_deploy_idempotent(xdg_dirs):
+    """Test that NativePlatform.deploy() can be run multiple times."""
     platform = NativePlatform()
 
-    # First install
-    result1 = platform.install()
+    # First deploy
+    result1 = platform.deploy()
     assert result1 is True
 
     # Get the key that was created
     key_path = platform.storage.user_key_path()
     original_key = key_path.read_bytes()
 
-    # Second install - should succeed and not change the key
-    result2 = platform.install()
+    # Second deploy - should succeed and not change the key
+    result2 = platform.deploy()
     assert result2 is True
     assert key_path.read_bytes() == original_key
 
 
-def test_native_deploy_calls_install(xdg_dirs):
-    """Test that NativePlatform.deploy() calls install."""
+def test_native_deploy_creates_key(xdg_dirs):
+    """Test that NativePlatform.deploy() creates user key."""
     platform = NativePlatform()
 
-    # deploy should call install() and build_if_needed()
+    # deploy should create directories and user key
     result = platform.deploy()
 
     assert result is True

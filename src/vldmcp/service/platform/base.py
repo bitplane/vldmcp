@@ -6,7 +6,6 @@ from pathlib import Path
 
 from ..system.config import get_config
 from .. import Service
-from ..system.installer import InstallerService
 from ..system.config import ConfigService
 from ..system.key import KeyService
 from ..system.storage import Storage
@@ -28,7 +27,6 @@ class PlatformBackend(Service):
         self.add_service(Storage())
         self.add_service(KeyService())
         self.add_service(ConfigService())
-        self.add_service(InstallerService())
         self.add_service(DaemonService())
         self.add_service(CryptoService())
 
@@ -40,7 +38,7 @@ class PlatformBackend(Service):
         """
         return True
 
-    def logs(self) -> str:
+    def logs(self, server_id: str | None = None) -> str:
         """Get platform logs."""
         # Default implementation - platforms can override
         return "No logs available"
@@ -91,26 +89,24 @@ class PlatformBackend(Service):
         )
 
     def deploy(self) -> bool:
-        """Deploy the platform environment (calls install, then build if needed).
+        """Deploy the platform environment (install and build if needed).
 
         Returns:
             True if deployment succeeded, False otherwise
         """
-        installer = self.get_service("installer")
-        if not installer or not installer.install():
-            return False
+        # Create all XDG directories with proper permissions
+        self.storage.create_directories()
+
+        # Ensure user identity key exists
+        from ... import crypto
+
+        crypto.ensure_user_key(self.storage)
+
+        # Ensure secure permissions
+        self.storage.ensure_secure_permissions()
+
+        # Build if needed (subclasses can override)
         return self.build_if_needed()
-
-    def install(self) -> bool:
-        """Install and set up the platform environment.
-
-        Returns:
-            True if installation succeeded, False otherwise
-        """
-        installer = self.get_service("installer")
-        if installer:
-            return installer.install()
-        return False
 
     def build_if_needed(self) -> bool:
         """Build if this runtime needs building (default: no build needed).
@@ -167,8 +163,8 @@ class PlatformBackend(Service):
         # Default implementation - platforms should override
         return "unknown"
 
-    def uninstall(self, config: bool = False, purge: bool = False) -> list[tuple[str, Path]]:
-        """Uninstall the platform environment.
+    def remove(self, config: bool = False, purge: bool = False) -> list[tuple[str, Path]]:
+        """Remove the platform environment.
 
         Args:
             config: If True, also remove config, state, and runtime dirs
@@ -177,7 +173,43 @@ class PlatformBackend(Service):
         Returns:
             List of (description, path) tuples that were removed
         """
-        installer = self.get_service("installer")
-        if installer:
-            return installer.uninstall(config=config, purge=purge)
-        return []
+        import shutil
+
+        dirs_removed = []
+
+        # Always remove install and cache
+        install_dir = self.storage.install_dir()
+        if install_dir.exists():
+            shutil.rmtree(install_dir)
+            dirs_removed.append(("install data", install_dir))
+
+        cache_dir = self.storage.cache_dir()
+        if cache_dir.exists():
+            shutil.rmtree(cache_dir)
+            dirs_removed.append(("cache", cache_dir))
+
+        # Config flag: also remove config and state
+        if config or purge:
+            config_dir = self.storage.config_dir()
+            if config_dir.exists():
+                shutil.rmtree(config_dir)
+                dirs_removed.append(("configuration", config_dir))
+
+            state_dir = self.storage.state_dir()
+            if state_dir.exists():
+                shutil.rmtree(state_dir)
+                dirs_removed.append(("state data", state_dir))
+
+            runtime_dir = self.storage.runtime_dir()
+            if runtime_dir.exists():
+                shutil.rmtree(runtime_dir)
+                dirs_removed.append(("runtime data", runtime_dir))
+
+        # Purge flag: also remove user data (including keys)
+        if purge:
+            data_dir = self.storage.data_dir()
+            if data_dir.exists():
+                shutil.rmtree(data_dir)
+                dirs_removed.append(("user data", data_dir))
+
+        return dirs_removed
