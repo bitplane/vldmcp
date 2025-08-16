@@ -40,7 +40,7 @@ Textual web interfaces (will) exist.
 When sharing links, you'll need to connect to GitHub/GitLab/Radicle if you want
 a short URL like that one.
 
-### MVPs and NCPs
+### MVPs and NPCs
 
 Users are identified by a key. Services are signed by the user's key. Every
 service also has its own key, though it might share its parent's if its parent
@@ -89,6 +89,8 @@ trustworthiness of a user or data source. The context including service method
 chains git hashes and signatures, can be saved with the data, and the hash of
 this claim shared.
 
+todo:
+
 explicit/implicit/automatic/unknown: set by user, peer, bot, or not set
 
 sample count, confidence
@@ -134,7 +136,6 @@ to the next stages.
   * 🕸 textual-web
 * 📖 API/MCP browser
   * 🔩 custom widgets
-
 
 ## Directory Structure
 
