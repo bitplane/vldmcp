@@ -15,7 +15,8 @@ def crypto_service():
 
 def test_crypto_service_name():
     """Test crypto service name."""
-    assert CryptoService.name() == "crypto"
+    service = CryptoService()
+    assert service.name == "crypto"
 
 
 def test_generate_key_length(crypto_service):

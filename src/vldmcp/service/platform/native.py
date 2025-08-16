@@ -2,6 +2,7 @@
 
 from .base import Platform
 from ..system.daemon import DaemonService
+from ...util.paths import Paths
 
 
 class NativePlatform(Platform):
@@ -17,7 +18,7 @@ class NativePlatform(Platform):
 
     def status(self) -> str:
         """Get platform status by checking daemon."""
-        if not self.storage.config_dir().exists():
+        if not Paths.CONFIG.exists():
             return "not deployed"
 
         return self.daemon.status()

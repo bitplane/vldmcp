@@ -5,7 +5,8 @@ from vldmcp.service import Service
 
 def test_service_name_base_class():
     """Test that base Service class returns lowercase name."""
-    assert Service.name() == "service"
+    service = Service()
+    assert service.name == "service"
 
 
 def test_service_name_removes_parent_suffix():
@@ -14,7 +15,8 @@ def test_service_name_removes_parent_suffix():
     class FooService(Service):
         pass
 
-    assert FooService.name() == "foo"
+    service = FooService()
+    assert service.name == "foo"
 
 
 def test_service_name_inheritance_chain():
@@ -26,8 +28,10 @@ def test_service_name_inheritance_chain():
     class BarFooService(FooService):
         pass
 
-    assert FooService.name() == "foo"
-    assert BarFooService.name() == "bar"  # Removes "FooService"
+    foo_service = FooService()
+    bar_service = BarFooService()
+    assert foo_service.name == "foo"
+    assert bar_service.name == "bar"  # Removes "FooService"
 
 
 def test_service_name_no_suffix_removal():
@@ -36,7 +40,8 @@ def test_service_name_no_suffix_removal():
     class CustomThing(Service):
         pass
 
-    assert CustomThing.name() == "customthing"
+    service = CustomThing()
+    assert service.name == "customthing"
 
 
 def test_service_name_case_handling():
@@ -45,7 +50,8 @@ def test_service_name_case_handling():
     class HTTPService(Service):
         pass
 
-    assert HTTPService.name() == "http"
+    service = HTTPService()
+    assert service.name == "http"
 
 
 def test_service_name_real_codebase_examples():
@@ -54,6 +60,10 @@ def test_service_name_real_codebase_examples():
     from vldmcp.service.system.storage import Storage
     from vldmcp.service.platform.native import NativePlatform
 
-    assert CryptoService.name() == "crypto"
-    assert Storage.name() == "storage"
-    assert NativePlatform.name() == "native"  # NativePlatform inherits from Platform
+    crypto = CryptoService()
+    storage = Storage()
+    platform = NativePlatform()
+
+    assert crypto.name == "crypto"
+    assert storage.name == "storage"
+    assert platform.name == "native"  # NativePlatform inherits from Platform

@@ -7,6 +7,7 @@ from pathlib import Path
 
 from ... import __version__
 from ...models.disk_usage import DiskUsage
+from ...util.paths import Paths
 from .base import Platform
 
 
@@ -21,7 +22,7 @@ class PodmanPlatform(Platform):
 
     def build(self, force: bool = False) -> bool:
         """Build container with podman."""
-        base_dir = self.storage.install_dir() / "base"
+        base_dir = Paths.INSTALL / "base"
         dockerfile = base_dir / "Dockerfile"
 
         if not dockerfile.exists():
@@ -130,8 +131,7 @@ class PodmanPlatform(Platform):
             return False
 
         # Set up install directory for container assets
-        install_dir = self.storage.install_dir()
-        base_dir = install_dir / "base"
+        base_dir = Paths.INSTALL / "base"
         base_dir.mkdir(parents=True, exist_ok=True)
 
         # Create Dockerfile for PyPI installation

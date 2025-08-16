@@ -1,6 +1,6 @@
 """Configuration service for vldmcp."""
 
-from .. import Service
+from ..base import Service
 from ...util.persistent_dict import PersistentDict
 from ...models.config import Config
 

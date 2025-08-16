@@ -24,7 +24,8 @@ so they can be searched for by man or womachine.
 
 Each/path/segment in this example is a different node in a tree of services:
 
-        /api/github.com:bitplane/host1/mcp/mvp-mcp:1.0.0+abcdef1/knickers-off
+```text
+        /api/github.com:bitplane/host1/mcp/bittty:1.0.0+abcdef1/spawn-tty
           |     |        |         |    |      |     |      |       |
           v     |        |         |    |      |     |      |       v
     api root    v        |         |    |      |     |      v    what it does
@@ -32,6 +33,7 @@ Each/path/segment in this example is a different node in a tree of services:
                 my username        v    |      v  version no
                     memorable box name  v  the service
                                 mcp services
+```
 
 Because it's using FastAPI and Pydantic, you can get a swagger interface at
 the /doc/ endpoint, but I wouldn't recommend it. That's why the Textual and

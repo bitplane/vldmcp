@@ -1,8 +1,9 @@
 """File system service for vldmcp."""
 
-import os
+import sqlite3
 from pathlib import Path
-from .. import Service
+from ..base import Service
+from ...util.paths import Paths
 
 
 class Storage(Service):
@@ -21,67 +22,14 @@ class Storage(Service):
         """Nothing to do on stop."""
         super().stop()
 
-    # Directory accessors
-    def data_dir(self) -> Path:
-        """Get the data directory path."""
-        xdg_data = os.environ.get("XDG_DATA_HOME")
-        if xdg_data:
-            return Path(xdg_data) / "vldmcp"
-        return Path.home() / ".local" / "share" / "vldmcp"
-
-    def config_dir(self) -> Path:
-        """Get the config directory path."""
-        xdg_config = os.environ.get("XDG_CONFIG_HOME")
-        if xdg_config:
-            return Path(xdg_config) / "vldmcp"
-        return Path.home() / ".config" / "vldmcp"
-
-    def state_dir(self) -> Path:
-        """Get the state directory path."""
-        xdg_state = os.environ.get("XDG_STATE_HOME")
-        if xdg_state:
-            return Path(xdg_state) / "vldmcp"
-        return Path.home() / ".local" / "state" / "vldmcp"
-
-    def cache_dir(self) -> Path:
-        """Get the cache directory path."""
-        xdg_cache = os.environ.get("XDG_CACHE_HOME")
-        if xdg_cache:
-            return Path(xdg_cache) / "vldmcp"
-        return Path.home() / ".cache" / "vldmcp"
-
-    def runtime_dir(self) -> Path:
-        """Get the runtime directory path."""
-        xdg_runtime = os.environ.get("XDG_RUNTIME_DIR")
-        if xdg_runtime:
-            return Path(xdg_runtime) / "vldmcp"
-        user = os.environ.get("USER", "unknown")
-        return Path(f"/tmp/vldmcp-{user}")
-
-    def install_dir(self) -> Path:
-        """Get the install directory path."""
-        return self.data_dir() / "install"
-
-    def repos_dir(self) -> Path:
-        """Get the repositories directory path."""
-        return self.cache_dir() / "src"
-
-    def build_dir(self) -> Path:
-        """Get the build directory path."""
-        return self.cache_dir() / "build"
-
-    def www_dir(self) -> Path:
-        """Get the www directory path."""
-        return self.data_dir() / "www"
-
     # File accessors
     def user_key_path(self) -> Path:
         """Get the user key file path."""
-        return self.data_dir() / "keys" / "user.key"
+        return Paths.KEYS / "user.key"
 
     def node_dir(self, node_id: str) -> Path:
         """Get the directory for a specific node's data."""
-        return self.state_dir() / "nodes" / node_id
+        return Paths.STATE / "nodes" / node_id
 
     def node_key_path(self, node_id: str) -> Path:
         """Get a node key file path."""
@@ -89,7 +37,11 @@ class Storage(Service):
 
     def pid_file_path(self) -> Path:
         """Get the PID file path."""
-        return self.runtime_dir() / "vldmcp.pid"
+        return Paths.RUNTIME / "vldmcp.pid"
+
+    def database_path(self, name: str) -> Path:
+        """Get path for a database file."""
+        return Paths.STATE / f"{name}.db"
 
     # File operations (with permission checks in the future)
     def read_file(self, path: Path, context=None) -> bytes:
@@ -160,44 +112,81 @@ class Storage(Service):
         """Check if a path is a directory."""
         return path.is_dir()
 
+    # Database operations
+    def create_database(self, name: str, schema: str | None = None) -> sqlite3.Connection:
+        """Create or open a SQLite database.
+
+        Args:
+            name: Database name (without .db extension)
+            schema: Optional SQL schema to execute on new database
+
+        Returns:
+            SQLite connection object
+        """
+        db_path = self.database_path(name)
+        db_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # Check if database is new
+        is_new = not db_path.exists()
+
+        conn = sqlite3.connect(db_path)
+        conn.row_factory = sqlite3.Row  # Enable dict-like access
+
+        # Execute schema if database is new and schema provided
+        if is_new and schema:
+            conn.executescript(schema)
+            conn.commit()
+
+        return conn
+
+    def get_database(self, name: str) -> sqlite3.Connection:
+        """Get connection to existing database.
+
+        Args:
+            name: Database name (without .db extension)
+
+        Returns:
+            SQLite connection object
+
+        Raises:
+            FileNotFoundError: If database doesn't exist
+        """
+        db_path = self.database_path(name)
+        if not db_path.exists():
+            raise FileNotFoundError(f"Database not found: {db_path}")
+
+        conn = sqlite3.connect(db_path)
+        conn.row_factory = sqlite3.Row
+        return conn
+
     # Directory management
     def create_directories(self) -> None:
         """Create all required directories with appropriate permissions."""
-        # Create config directory
-        self.config_dir().mkdir(parents=True, exist_ok=True)
+        # Create all base directories
+        Paths.CONFIG.mkdir(parents=True, exist_ok=True)
+        Paths.DATA.mkdir(parents=True, exist_ok=True)
+        Paths.STATE.mkdir(parents=True, exist_ok=True, mode=0o700)
+        Paths.CACHE.mkdir(parents=True, exist_ok=True)
+        Paths.RUNTIME.mkdir(parents=True, exist_ok=True, mode=0o700)
 
-        # Create data directory and keys subdirectory with secure permissions
-        keys_dir = self.data_dir() / "keys"
-        keys_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
-
-        # Create state directory with secure permissions
-        self.state_dir().mkdir(parents=True, exist_ok=True, mode=0o700)
-
-        # Create cache directories
-        self.cache_dir().mkdir(parents=True, exist_ok=True)
-        self.repos_dir().mkdir(parents=True, exist_ok=True)
-        self.build_dir().mkdir(parents=True, exist_ok=True)
-
-        # Create install directory
-        self.install_dir().mkdir(parents=True, exist_ok=True)
+        # Create derived directories
+        Paths.KEYS.mkdir(parents=True, exist_ok=True, mode=0o700)
+        Paths.INSTALL.mkdir(parents=True, exist_ok=True)
+        Paths.REPOS.mkdir(parents=True, exist_ok=True)
+        Paths.BUILD.mkdir(parents=True, exist_ok=True)
 
         # Create www directory and subdirectories
-        www = self.www_dir()
-        www.mkdir(parents=True, exist_ok=True)
-        (www / "models").mkdir(exist_ok=True)
-        (www / "assets").mkdir(exist_ok=True)
-        (www / "uploads").mkdir(exist_ok=True)
-        (www / "generated").mkdir(exist_ok=True)
-
-        # Create runtime directory with secure permissions
-        self.runtime_dir().mkdir(parents=True, exist_ok=True, mode=0o700)
+        Paths.WWW.mkdir(parents=True, exist_ok=True)
+        (Paths.WWW / "models").mkdir(exist_ok=True)
+        (Paths.WWW / "assets").mkdir(exist_ok=True)
+        (Paths.WWW / "uploads").mkdir(exist_ok=True)
+        (Paths.WWW / "generated").mkdir(exist_ok=True)
 
     def ensure_secure_permissions(self) -> None:
         """Ensure all sensitive directories and files have correct permissions."""
         # Secure the keys directory
-        keys_dir = self.data_dir() / "keys"
-        if keys_dir.exists():
-            keys_dir.chmod(0o700)
+        if Paths.KEYS.exists():
+            Paths.KEYS.chmod(0o700)
 
             # Secure the user key file if it exists
             user_key = self.user_key_path()
@@ -205,11 +194,11 @@ class Storage(Service):
                 user_key.chmod(0o600)
 
         # Secure the state directory
-        if self.state_dir().exists():
-            self.state_dir().chmod(0o700)
+        if Paths.STATE.exists():
+            Paths.STATE.chmod(0o700)
 
             # Secure all node directories and key files
-            nodes_dir = self.state_dir() / "nodes"
+            nodes_dir = Paths.STATE / "nodes"
             if nodes_dir.exists():
                 for node_path in nodes_dir.iterdir():
                     if node_path.is_dir():
@@ -219,5 +208,5 @@ class Storage(Service):
                             key_file.chmod(0o600)
 
         # Secure the runtime directory
-        if self.runtime_dir().exists():
-            self.runtime_dir().chmod(0o700)
+        if Paths.RUNTIME.exists():
+            Paths.RUNTIME.chmod(0o700)

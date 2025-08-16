@@ -1,5 +1,9 @@
 """Pretty printing utilities for vldmcp."""
 
+import base32hex
+import hashlib
+import base58
+
 
 def pprint_size(size_bytes: int) -> str:
     """Convert bytes to human-readable size string.
@@ -81,3 +85,73 @@ def _format_value(value) -> str:
         return str(value)
     else:
         return str(value)
+
+
+def pprint_pubkey(pubkey: bytes, format: str = "short") -> str:
+    """Format an Ed25519 public key for display.
+
+    Args:
+        pubkey: 32-byte Ed25519 public key
+        format: Display format - "short", "veilid", "onion", or "full"
+
+    Returns:
+        Formatted public key string
+
+    Raises:
+        ValueError: If pubkey is not exactly 32 bytes
+    """
+    if len(pubkey) != 32:
+        raise ValueError(f"Public key must be exactly 32 bytes, got {len(pubkey)}")
+
+    if format == "short":
+        # Show first 8 chars of hex
+        return pubkey.hex()[:8] + "..."
+    elif format == "veilid":
+        # Veilid format: VLD0:<base58>
+        return f"VLD0:{base58.b58encode(pubkey).decode()}"
+    elif format == "onion":
+        # Tor v3 onion address
+        return pubkey_to_onion(pubkey)
+    elif format == "full":
+        # Full hex
+        return pubkey.hex()
+    else:
+        raise ValueError(f"Unknown format: {format}")
+
+
+def pubkey_to_onion(pubkey: bytes) -> str:
+    """Convert Ed25519 public key to Tor v3 onion address.
+
+    Args:
+        pubkey: 32-byte Ed25519 public key
+
+    Returns:
+        Tor v3 onion address (e.g., "abc123...def.onion")
+    """
+    if len(pubkey) != 32:
+        raise ValueError(f"Public key must be exactly 32 bytes, got {len(pubkey)}")
+
+    # Tor v3 onion address calculation
+    checksum_input = b".onion checksum" + pubkey + b"\x03"
+    checksum = hashlib.sha3_256(checksum_input).digest()[:2]
+
+    # Encode: pubkey + checksum + version (0x03)
+    address_bytes = pubkey + checksum + b"\x03"
+    address = base32hex.b32encode(address_bytes).decode().lower().rstrip("=")
+
+    return f"{address}.onion"
+
+
+def pubkey_to_veilid(pubkey: bytes) -> str:
+    """Convert Ed25519 public key to Veilid identity string.
+
+    Args:
+        pubkey: 32-byte Ed25519 public key
+
+    Returns:
+        Veilid identity string (e.g., "VLD0:...")
+    """
+    if len(pubkey) != 32:
+        raise ValueError(f"Public key must be exactly 32 bytes, got {len(pubkey)}")
+
+    return f"VLD0:{base58.b58encode(pubkey).decode()}"

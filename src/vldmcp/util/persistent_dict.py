@@ -2,6 +2,7 @@
 
 import tomllib
 import tomli_w
+from .paths import Paths
 
 
 class PersistentDict:
@@ -26,7 +27,7 @@ class PersistentDict:
 
     def load(self):
         """Load data from storage."""
-        config_path = self.storage.config_dir() / self.file_path
+        config_path = Paths.CONFIG / self.file_path
         if config_path.exists():
             with open(config_path, "rb") as f:
                 self.data = tomllib.load(f)
@@ -36,7 +37,7 @@ class PersistentDict:
 
     def save(self):
         """Save data to storage."""
-        config_path = self.storage.config_dir() / self.file_path
+        config_path = Paths.CONFIG / self.file_path
         config_path.parent.mkdir(parents=True, exist_ok=True)
         with open(config_path, "wb") as f:
             tomli_w.dump(self.data, f)

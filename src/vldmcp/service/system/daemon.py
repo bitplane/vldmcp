@@ -3,7 +3,7 @@
 import subprocess
 import signal
 import os
-from .. import Service
+from ..base import Service
 
 
 class DaemonService(Service):

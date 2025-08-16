@@ -23,8 +23,11 @@ import secrets
 from pathlib import Path
 
 from mnemonic import Mnemonic
+from nacl.signing import SigningKey
+from nacl.encoding import RawEncoder
+import blake3
 
-from .. import Service
+from ..base import Service
 from .storage import Storage
 
 
@@ -240,9 +243,6 @@ class CryptoService(Service):
         if len(key) != 32:
             raise ValueError(f"Key must be exactly 32 bytes, got {len(key)}")
 
-        from nacl.signing import SigningKey
-        import blake3
-
         # Derive public key from private key
         signing_key = SigningKey(key)
         public_key = signing_key.verify_key.encode()
@@ -256,9 +256,6 @@ def ed25519_keypair_from_seed(seed32: bytes) -> tuple[bytes, bytes]:
 
     Not needed for storage; useful for signing/tests.
     """
-    from nacl.signing import SigningKey
-    from nacl.encoding import RawEncoder
-
     if len(seed32) != 32:
         raise ValueError("Seed must be 32 bytes for Ed25519.")
     sk = SigningKey(seed32)
@@ -268,6 +265,4 @@ def ed25519_keypair_from_seed(seed32: bytes) -> tuple[bytes, bytes]:
 
 def generate_node_id() -> str:
     """Generate a random node ID (hex)."""
-    import secrets
-
     return secrets.token_hex(16)

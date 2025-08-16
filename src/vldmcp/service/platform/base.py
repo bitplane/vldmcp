@@ -3,12 +3,13 @@
 import subprocess
 from pathlib import Path
 
-from .. import Service
+from ..base import Service
 from ..system.config import ConfigService
 from ..system.storage import Storage
 from ..system.crypto import CryptoService
 from ...models.disk_usage import DiskUsage, InstallUsage, McpUsage
 from ...models.info import ClientInfo
+from ...util.paths import Paths
 
 
 class Platform(Service):
@@ -19,6 +20,9 @@ class Platform(Service):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        # Platform has empty path for invisible routing
+        self.path = ""
+
         # Add core services that all platforms need
         storage = Storage(self)
         ConfigService(storage, self)
@@ -58,20 +62,19 @@ class Platform(Service):
                 return 0
 
         # Calculate base sizes
-        config_size = get_dir_size(self.storage.config_dir()) + get_dir_size(self.storage.runtime_dir())
+        config_size = get_dir_size(Paths.CONFIG) + get_dir_size(Paths.RUNTIME)
 
         # Install breakdown
-        install_dir = self.storage.install_dir()
-        install_image_size = get_dir_size(install_dir / "base") if install_dir.exists() else 0
-        install_data_size = get_dir_size(self.storage.data_dir()) + get_dir_size(self.storage.state_dir())
+        install_image_size = get_dir_size(Paths.INSTALL / "base") if Paths.INSTALL.exists() else 0
+        install_data_size = get_dir_size(Paths.DATA) + get_dir_size(Paths.STATE)
 
         # MCP breakdown
-        repos_size = get_dir_size(self.storage.repos_dir())
+        repos_size = get_dir_size(Paths.REPOS)
         mcp_images_size = 0  # Container backends will override this
-        mcp_data_size = get_dir_size(self.storage.cache_dir())
+        mcp_data_size = get_dir_size(Paths.CACHE)
 
         # WWW data
-        www_size = get_dir_size(self.storage.www_dir())
+        www_size = get_dir_size(Paths.WWW)
 
         return DiskUsage(
             config=config_size,
@@ -143,8 +146,7 @@ class Platform(Service):
             Status string ("running", "stopped", "not deployed", etc.)
         """
         # Check if deployed (config exists)
-        config_dir = self.storage.config_dir()
-        if not config_dir.exists():
+        if not Paths.CONFIG.exists():
             return "not deployed"
 
         return "stopped"
@@ -164,38 +166,32 @@ class Platform(Service):
         dirs_removed = []
 
         # Always remove install and cache
-        install_dir = self.storage.install_dir()
-        if install_dir.exists():
-            shutil.rmtree(install_dir)
-            dirs_removed.append(("install data", install_dir))
+        if Paths.INSTALL.exists():
+            shutil.rmtree(Paths.INSTALL)
+            dirs_removed.append(("install data", Paths.INSTALL))
 
-        cache_dir = self.storage.cache_dir()
-        if cache_dir.exists():
-            shutil.rmtree(cache_dir)
-            dirs_removed.append(("cache", cache_dir))
+        if Paths.CACHE.exists():
+            shutil.rmtree(Paths.CACHE)
+            dirs_removed.append(("cache", Paths.CACHE))
 
         # Config flag: also remove config and state
         if config or purge:
-            config_dir = self.storage.config_dir()
-            if config_dir.exists():
-                shutil.rmtree(config_dir)
-                dirs_removed.append(("configuration", config_dir))
+            if Paths.CONFIG.exists():
+                shutil.rmtree(Paths.CONFIG)
+                dirs_removed.append(("configuration", Paths.CONFIG))
 
-            state_dir = self.storage.state_dir()
-            if state_dir.exists():
-                shutil.rmtree(state_dir)
-                dirs_removed.append(("state data", state_dir))
+            if Paths.STATE.exists():
+                shutil.rmtree(Paths.STATE)
+                dirs_removed.append(("state data", Paths.STATE))
 
-            runtime_dir = self.storage.runtime_dir()
-            if runtime_dir.exists():
-                shutil.rmtree(runtime_dir)
-                dirs_removed.append(("runtime data", runtime_dir))
+            if Paths.RUNTIME.exists():
+                shutil.rmtree(Paths.RUNTIME)
+                dirs_removed.append(("runtime data", Paths.RUNTIME))
 
         # Purge flag: also remove user data (including keys)
         if purge:
-            data_dir = self.storage.data_dir()
-            if data_dir.exists():
-                shutil.rmtree(data_dir)
-                dirs_removed.append(("user data", data_dir))
+            if Paths.DATA.exists():
+                shutil.rmtree(Paths.DATA)
+                dirs_removed.append(("user data", Paths.DATA))
 
         return dirs_removed

@@ -6,6 +6,7 @@ from ..service.platform import get_platform
 from ..models.config import PLATFORM_TYPES
 from ..util.pprint import pprint_size
 from ..util.output import output_nested_dict
+from ..util.paths import Paths
 
 
 @click.group()
@@ -108,34 +109,26 @@ def remove_cmd(config, purge, yes):
     platform = get_platform()
 
     # Get list of what will be removed (for display)
-    install_dir = platform.storage.install_dir()
-    cache_dir = platform.storage.cache_dir()
-
     dirs_to_show = []
     # Always remove install and cache
-    if install_dir.exists():
-        dirs_to_show.append(("Install data", install_dir))
-    if cache_dir.exists():
-        dirs_to_show.append(("Cache", cache_dir))
+    if Paths.INSTALL.exists():
+        dirs_to_show.append(("Install data", Paths.INSTALL))
+    if Paths.CACHE.exists():
+        dirs_to_show.append(("Cache", Paths.CACHE))
 
     # --config flag: also remove config and state/runtime
     if config or purge:
-        config_dir = platform.storage.config_dir()
-        state_dir = platform.storage.state_dir()
-        runtime_dir = platform.storage.runtime_dir()
-
-        if config_dir.exists():
-            dirs_to_show.append(("Configuration", config_dir))
-        if state_dir.exists():
-            dirs_to_show.append(("State data", state_dir))
-        if runtime_dir.exists():
-            dirs_to_show.append(("Runtime data", runtime_dir))
+        if Paths.CONFIG.exists():
+            dirs_to_show.append(("Configuration", Paths.CONFIG))
+        if Paths.STATE.exists():
+            dirs_to_show.append(("State data", Paths.STATE))
+        if Paths.RUNTIME.exists():
+            dirs_to_show.append(("Runtime data", Paths.RUNTIME))
 
     # --purge flag: also remove user data (including keys)
     if purge:
-        data_dir = platform.storage.data_dir()
-        if data_dir.exists():
-            dirs_to_show.append(("User data (including keys)", data_dir))
+        if Paths.DATA.exists():
+            dirs_to_show.append(("User data (including keys)", Paths.DATA))
 
     if not dirs_to_show:
         click.echo("No vldmcp installation found.")

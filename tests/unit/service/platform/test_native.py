@@ -1,6 +1,7 @@
 """Tests for native platform."""
 
 from vldmcp.service.platform.native import NativePlatform
+from vldmcp.util.paths import Paths
 
 
 def test_native_platform_creates_core_services(xdg_dirs):
@@ -22,10 +23,10 @@ def test_native_deploy_creates_directories(xdg_dirs):
     result = platform.deploy()
 
     assert result is True
-    assert platform.storage.data_dir().exists()
-    assert platform.storage.config_dir().exists()
-    assert platform.storage.cache_dir().exists()
-    assert platform.storage.state_dir().exists()
+    assert Paths.DATA.exists()
+    assert Paths.CONFIG.exists()
+    assert Paths.CACHE.exists()
+    assert Paths.STATE.exists()
 
 
 def test_native_deploy_ensures_user_key(xdg_dirs):
@@ -71,7 +72,7 @@ def test_native_platform_logs():
     assert "No logs available" in logs
 
 
-def test_native_platform_status_not_deployed():
+def test_native_platform_status_not_deployed(xdg_dirs):
     """Test status when not deployed."""
     platform = NativePlatform()
 
@@ -115,10 +116,9 @@ def test_native_platform_remove(xdg_dirs):
     platform.deploy()
 
     # Create some files to remove
-    install_dir = platform.storage.install_dir()
-    install_dir.mkdir(parents=True, exist_ok=True)
-    (install_dir / "test.txt").write_text("test")
+    Paths.INSTALL.mkdir(parents=True, exist_ok=True)
+    (Paths.INSTALL / "test.txt").write_text("test")
 
     removed = platform.remove()
     assert len(removed) > 0
-    assert not install_dir.exists()
+    assert not Paths.INSTALL.exists()
