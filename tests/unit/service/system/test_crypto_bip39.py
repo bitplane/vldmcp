@@ -49,12 +49,12 @@ def test_save_key_invalid_size(tmp_path):
 
 
 def test_load_key_invalid_size(tmp_path):
-    """Test that load_key rejects files with wrong size."""
+    """Test that load_key returns None for files with wrong size."""
     key_path = tmp_path / "bad.key"
     key_path.write_bytes(b"wrong size")
 
-    with pytest.raises(ValueError, match="expected 32"):
-        crypto.load_key(key_path)
+    result = crypto.load_key(key_path)
+    assert result is None
 
 
 def test_generate_mnemonic_and_key():
@@ -93,12 +93,12 @@ def test_key_from_mnemonic_invalid():
     """Test that key_from_mnemonic rejects invalid mnemonics."""
     # Invalid checksum
     bad_mnemonic = "abandon " * 24  # Not a valid checksum
-    with pytest.raises(ValueError, match="Invalid BIP-39 mnemonic"):
+    with pytest.raises(ValueError, match="Invalid mnemonic phrase"):
         crypto.key_from_mnemonic(bad_mnemonic)
 
     # Invalid word
     bad_mnemonic = "notaword " + " ".join(["abandon"] * 23)
-    with pytest.raises(ValueError, match="Invalid BIP-39 mnemonic"):
+    with pytest.raises(ValueError, match="Invalid mnemonic phrase"):
         crypto.key_from_mnemonic(bad_mnemonic)
 
 

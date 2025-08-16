@@ -16,8 +16,14 @@ class Service(ABC):
 
     @classmethod
     def name(cls) -> str:
-        """Get the service name (defaults to class name)."""
-        return cls.__name__
+        """Get the service name (derived from class name)."""
+        name = cls.__name__
+        # Remove parent class name suffix if present
+        if len(cls.__bases__) > 0:
+            parent_name = cls.__bases__[0].__name__
+            if name.endswith(parent_name) and name != parent_name:
+                name = name[: -len(parent_name)]
+        return name.lower()
 
     # Service lifecycle
     def start(self):

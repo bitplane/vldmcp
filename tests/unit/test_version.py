@@ -1,6 +1,9 @@
 """Tests for version utilities."""
 
-from vldmcp.util.version import is_development, get_version
+import subprocess
+from unittest.mock import patch
+
+from vldmcp.util.version import is_development, get_version, _git_describe
 from vldmcp.service.platform.detection import get_platform, guess_platform
 from vldmcp.service.platform.native import NativePlatform
 
@@ -37,3 +40,94 @@ def test_platform_detection_uses_native_in_tests():
     platform = get_platform()
     assert isinstance(platform, NativePlatform)
     assert type(platform).__name__ == "NativePlatform"
+
+
+def test_git_describe_success():
+    """Test _git_describe with successful git command."""
+    with patch("subprocess.check_output") as mock_check:
+        mock_check.return_value = "v0.1.0-5-g1234567\n"
+        result = _git_describe()
+        assert result == "v0.1.0-5-g1234567"
+        mock_check.assert_called_once_with(
+            ["git", "describe", "--dirty", "--always", "--tags"], stderr=subprocess.DEVNULL, text=True
+        )
+
+
+def test_git_describe_empty_output():
+    """Test _git_describe with empty git output."""
+    with patch("subprocess.check_output") as mock_check:
+        mock_check.return_value = ""
+        result = _git_describe()
+        assert result is None
+
+
+def test_git_describe_exception():
+    """Test _git_describe when git command fails."""
+    with patch("subprocess.check_output") as mock_check:
+        mock_check.side_effect = subprocess.CalledProcessError(1, "git")
+        result = _git_describe()
+        assert result is None
+
+
+def test_git_describe_file_not_found():
+    """Test _git_describe when git is not installed."""
+    with patch("subprocess.check_output") as mock_check:
+        mock_check.side_effect = FileNotFoundError("git not found")
+        result = _git_describe()
+        assert result is None
+
+
+def test_get_version_with_git_decoration():
+    """Test get_version includes git info in development mode."""
+    with (
+        patch("vldmcp.util.version.is_development", return_value=True),
+        patch("vldmcp.util.version._git_describe", return_value="v0.1.0-dirty"),
+        patch("vldmcp.util.version.version", return_value="0.0.1"),
+    ):
+        version = get_version()
+        assert version == "0.0.1+v0.1.0-dirty"
+
+
+def test_get_version_git_same_as_base():
+    """Test get_version when git version matches base version."""
+    with (
+        patch("vldmcp.util.version.is_development", return_value=True),
+        patch("vldmcp.util.version._git_describe", return_value="0.0.1"),
+        patch("vldmcp.util.version.version", return_value="0.0.1"),
+    ):
+        version = get_version()
+        assert version == "0.0.1"
+
+
+def test_get_version_no_git_info():
+    """Test get_version when git info is not available."""
+    with (
+        patch("vldmcp.util.version.is_development", return_value=True),
+        patch("vldmcp.util.version._git_describe", return_value=None),
+        patch("vldmcp.util.version.version", return_value="0.0.1"),
+    ):
+        version = get_version()
+        assert version == "0.0.1"
+
+
+def test_get_version_not_development():
+    """Test get_version in non-development mode."""
+    with (
+        patch("vldmcp.util.version.is_development", return_value=False),
+        patch("vldmcp.util.version.version", return_value="1.0.0"),
+    ):
+        version = get_version()
+        assert version == "1.0.0"
+
+
+def test_is_development_no_git_dir(tmp_path):
+    """Test is_development when no .git directory exists."""
+    # Create a fake vldmcp module in temp directory
+    fake_vldmcp = tmp_path / "vldmcp"
+    fake_vldmcp.mkdir()
+    fake_file = fake_vldmcp / "__init__.py"
+    fake_file.write_text("")
+
+    # Mock vldmcp.__file__ to point to our temp file
+    with patch("vldmcp.util.version.vldmcp.__file__", str(fake_file)):
+        assert is_development() is False

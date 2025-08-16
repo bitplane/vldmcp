@@ -35,10 +35,6 @@ class CryptoService(Service):
         super().__init__()
         self._mnemonic = Mnemonic("english")
 
-    @classmethod
-    def name(cls) -> str:
-        return "crypto"
-
     def start(self):
         """Initialize crypto service."""
         self._running = True

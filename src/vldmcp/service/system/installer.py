@@ -8,10 +8,6 @@ from ... import crypto
 class InstallerService(Service):
     """Service that handles vldmcp installation."""
 
-    @classmethod
-    def name(cls) -> str:
-        return "installer"
-
     def start(self):
         """Not a running service - installation happens via install() method."""
         self._running = False

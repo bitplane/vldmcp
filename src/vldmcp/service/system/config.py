@@ -27,10 +27,6 @@ class ConfigService(Service):
             return Path(xdg_config) / "vldmcp" / "config.toml"
         return Path.home() / ".config" / "vldmcp" / "config.toml"
 
-    @classmethod
-    def name(cls) -> str:
-        return "config"
-
     def start(self):
         """Load configuration on start."""
         self.load()

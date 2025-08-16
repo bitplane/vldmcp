@@ -14,10 +14,6 @@ class DaemonService(Service):
         self._process = None
         self._pid = None
 
-    @classmethod
-    def name(cls) -> str:
-        return "daemon"
-
     def start(self, debug: bool = False):
         """Start the daemon process.
 

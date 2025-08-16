@@ -8,10 +8,6 @@ from .. import Service
 class Storage(Service):
     """Service that manages file system access with permission control."""
 
-    @classmethod
-    def name(cls) -> str:
-        return "storage"
-
     def start(self):
         """Ensure directories exist on start."""
         self.create_directories()
