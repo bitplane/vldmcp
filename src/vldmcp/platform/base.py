@@ -1,44 +1,45 @@
-"""Abstract base class for runtime backends."""
+"""Abstract base class for platform backends."""
 
-import shutil
 import subprocess
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from pathlib import Path
-from typing import Optional
 
-from .. import paths, crypto
+from .. import paths
 from ..config import get_config
+from ..service import Service
+from ..installer import InstallerService
+from ..config_service import ConfigService
+from ..key_service import KeyService
+from ..file_service import FileService
+from ..daemon_service import DaemonService
 from ..models.disk_usage import DiskUsage, InstallUsage, McpUsage
 from ..models.info import ClientInfo
 
 
-class RuntimeBackend(ABC):
-    """Abstract base class for different runtime backends (podman, docker, native, etc)."""
+class PlatformBackend(Service):
+    """Abstract base class for different platform backends (podman, docker, native, etc).
+
+    Platforms are Services that manage the vldmcp installation and core services.
+    """
+
+    def __init__(self):
+        super().__init__()
+        # Add core services that all platforms need
+        self.add_service(FileService())
+        self.add_service(KeyService())
+        self.add_service(ConfigService())
+        self.add_service(InstallerService())
+        self.add_service(DaemonService())
 
     @abstractmethod
     def build(self, dockerfile_path: Path) -> bool:
         """Build the server image/environment."""
         pass
 
-    @abstractmethod
-    def start(self, mounts: dict[str, str], ports: list[str]) -> str:
-        """Start the server and return a process/container ID."""
-        pass
-
-    @abstractmethod
-    def stop(self, server_id: str) -> bool:
-        """Stop the server."""
-        pass
-
-    @abstractmethod
-    def status(self, server_id: str) -> str:
-        """Get server status."""
-        pass
-
-    @abstractmethod
-    def logs(self, server_id: str) -> str:
-        """Get server logs."""
-        pass
+    def logs(self) -> str:
+        """Get platform logs."""
+        # Default implementation - platforms can override
+        return "No logs available"
 
     def stream_logs(self, server_id: str) -> None:
         """Stream server logs to stdout (default implementation prints static logs)."""
@@ -86,31 +87,26 @@ class RuntimeBackend(ABC):
         )
 
     def deploy(self) -> bool:
-        """Deploy the runtime environment (calls install, then build if needed).
+        """Deploy the platform environment (calls install, then build if needed).
 
         Returns:
             True if deployment succeeded, False otherwise
         """
-        if not self.install():
+        installer = self.get_service("installer")
+        if not installer or not installer.install():
             return False
         return self.build_if_needed()
 
     def install(self) -> bool:
-        """Install and set up the runtime environment.
+        """Install and set up the platform environment.
 
         Returns:
             True if installation succeeded, False otherwise
         """
-        # Create all XDG directories with proper permissions
-        paths.create_directories()
-
-        # Ensure user identity key exists
-        crypto.ensure_user_key()
-
-        # Ensure secure permissions
-        paths.ensure_secure_permissions()
-
-        return True
+        installer = self.get_service("installer")
+        if installer:
+            return installer.install()
+        return False
 
     def build_if_needed(self) -> bool:
         """Build if this runtime needs building (default: no build needed).
@@ -159,7 +155,7 @@ class RuntimeBackend(ABC):
         )
 
     def uninstall(self, config: bool = False, purge: bool = False) -> list[tuple[str, Path]]:
-        """Uninstall the runtime environment.
+        """Uninstall the platform environment.
 
         Args:
             config: If True, also remove config, state, and runtime dirs
@@ -168,65 +164,7 @@ class RuntimeBackend(ABC):
         Returns:
             List of (description, path) tuples that were removed
         """
-        dirs_removed = []
-
-        # Always remove install data and cache
-        for desc, dir_path in [
-            ("Install data", paths.install_dir()),
-            ("Cache", paths.cache_dir()),
-        ]:
-            if dir_path.exists():
-                shutil.rmtree(dir_path)
-                dirs_removed.append((desc, dir_path))
-
-        # --config flag: also remove config, state, and runtime
-        if config or purge:
-            for desc, dir_path in [
-                ("Configuration", paths.config_dir()),
-                ("State data", paths.state_dir()),
-                ("Runtime data", paths.runtime_dir()),
-            ]:
-                if dir_path.exists():
-                    shutil.rmtree(dir_path)
-                    dirs_removed.append((desc, dir_path))
-
-        # --purge flag: also remove user data (including keys)
-        if purge:
-            for desc, dir_path in [
-                ("User data (including keys)", paths.data_dir()),
-            ]:
-                if dir_path.exists():
-                    shutil.rmtree(dir_path)
-                    dirs_removed.append((desc, dir_path))
-
-        return dirs_removed
-
-    @abstractmethod
-    def deploy_start(self, debug: bool = False) -> Optional[str]:
-        """Deploy and start the server (runtime-specific implementation).
-
-        Args:
-            debug: If True, run in debug mode
-
-        Returns:
-            Server ID if started successfully, None if failed
-        """
-        pass
-
-    @abstractmethod
-    def deploy_stop(self) -> bool:
-        """Stop the deployed server (runtime-specific implementation).
-
-        Returns:
-            True if stopped successfully, False otherwise
-        """
-        pass
-
-    @abstractmethod
-    def deploy_status(self) -> str:
-        """Get status of deployed server (runtime-specific implementation).
-
-        Returns:
-            Status string ("running", "stopped", "not running", etc.)
-        """
-        pass
+        installer = self.get_service("installer")
+        if installer:
+            return installer.uninstall(config=config, purge=purge)
+        return []

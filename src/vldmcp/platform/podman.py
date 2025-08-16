@@ -9,11 +9,11 @@ from typing import Optional
 from .. import __version__, paths
 from ..config import get_config
 from ..models.disk_usage import DiskUsage
-from .base import RuntimeBackend
+from .base import PlatformBackend
 
 
-class PodmanBackend(RuntimeBackend):
-    """Podman container runtime backend."""
+class PodmanPlatform(PlatformBackend):
+    """Podman container platform backend."""
 
     def _get_podman_config(self):
         """Get podman-specific configuration values."""
@@ -296,3 +296,16 @@ class PodmanBackend(RuntimeBackend):
             pid_file.unlink()
 
         return status
+
+    # Host interface methods
+    def start_service(self, name: str):
+        """Start a specific service."""
+        service = self.get_service(name)
+        if service:
+            service.start()
+
+    def stop_service(self, name: str):
+        """Stop a specific service."""
+        service = self.get_service(name)
+        if service:
+            service.stop()

@@ -3,9 +3,9 @@
 import click
 
 from .. import paths
-from ..runtime import get_runtime
-from ..config import set_runtime_type
-from ..models.config import RUNTIME_TYPES
+from ..platform import get_platform
+from ..config import set_platform_type
+from ..models.config import PLATFORM_TYPES
 from ..util.pprint import pprint_size
 from ..util.output import output_nested_dict
 
@@ -18,10 +18,10 @@ def server():
 
 @server.command()
 @click.option(
-    "--runtime",
-    type=click.Choice([*RUNTIME_TYPES, "guess"], case_sensitive=False),
+    "--platform",
+    type=click.Choice([*PLATFORM_TYPES, "guess"], case_sensitive=False),
     default="guess",
-    help="Runtime to use for deployment (default: auto-detect)",
+    help="Platform to use for deployment (default: auto-detect)",
 )
 @click.option(
     "--recover",
@@ -33,16 +33,16 @@ def server():
     is_flag=True,
     help="Display seed phrase after generating new identity",
 )
-def install(runtime, recover, show_seed):
-    """Install base assets and prepare runtime."""
+def install(platform, recover, show_seed):
+    """Install base assets and prepare platform."""
     from .. import crypto
 
     click.echo("Setting up vldmcp...")
 
-    # Set runtime type if specified
-    if runtime != "guess":
-        click.echo(f"Using {runtime} runtime")
-        set_runtime_type(runtime)
+    # Set platform type if specified
+    if platform != "guess":
+        click.echo(f"Using {platform} platform")
+        set_platform_type(platform)
 
     # Handle seed phrase recovery or generation
     user_key_path = paths.user_key_path()
@@ -85,8 +85,8 @@ def install(runtime, recover, show_seed):
         # Existing installation
         click.echo("✅ Using existing identity")
 
-    runtime = get_runtime()
-    if runtime.deploy():
+    platform = get_platform()
+    if platform.deploy():
         click.echo("Installation complete!")
     else:
         click.echo("Installation failed!")
@@ -112,7 +112,7 @@ def install(runtime, recover, show_seed):
 )
 def uninstall(config, purge, yes):
     """Uninstall the vldmcp server and optionally remove all user data."""
-    runtime = get_runtime()
+    platform = get_platform()
 
     # Get list of what will be removed (for display)
     install_dir = paths.install_dir()
@@ -161,7 +161,7 @@ def uninstall(config, purge, yes):
         click.confirm("\nContinue?", abort=True)
 
     # Do the actual removal
-    dirs_removed = runtime.uninstall(config=config, purge=purge)
+    dirs_removed = platform.uninstall(config=config, purge=purge)
 
     for desc, path in dirs_removed:
         click.echo(f"Removed {desc}: {path}")
@@ -174,8 +174,8 @@ def upgrade():
     """Upgrade vldmcp to latest version."""
     click.echo("Upgrading vldmcp...")
 
-    runtime = get_runtime()
-    if runtime.upgrade():
+    platform = get_platform()
+    if platform.upgrade():
         click.echo("Upgrade complete!")
     else:
         click.echo("Upgrade failed!")
@@ -190,16 +190,16 @@ def upgrade():
 )
 def start(debug):
     """Start the vldmcp server."""
-    runtime = get_runtime()
+    platform = get_platform()
 
     # Check if already running
-    if runtime.deploy_status() == "running":
+    if platform.deploy_status() == "running":
         click.echo("Server is already running")
         return
 
     click.echo("Starting vldmcp server...")
 
-    server_id = runtime.deploy_start(debug=debug)
+    server_id = platform.deploy_start(debug=debug)
     if server_id:
         if debug:
             click.echo(f"Server started in debug mode (PID: {server_id})")
@@ -215,8 +215,8 @@ def stop():
     """Stop the vldmcp server."""
     click.echo("Stopping vldmcp server...")
 
-    runtime = get_runtime()
-    if runtime.deploy_stop():
+    platform = get_platform()
+    if platform.deploy_stop():
         click.echo("Server stopped!")
     else:
         click.echo("No server running or failed to stop")
@@ -261,7 +261,7 @@ def export_seed():
 @server.command()
 def logs():
     """View the server logs."""
-    runtime = get_runtime()
+    platform = get_platform()
     # Get PID from file and stream logs
     pid_file = paths.pid_file_path()
     if not pid_file.exists():
@@ -269,17 +269,17 @@ def logs():
         return
 
     pid_content = pid_file.read_text().strip()
-    runtime.stream_logs(pid_content)
+    platform.stream_logs(pid_content)
 
 
 @server.command()
 @click.option("-h", "--human", is_flag=True, help="Output human-readable sizes instead of bytes")
 def du(human):
     """Show disk usage for vldmcp."""
-    runtime = get_runtime()
+    platform = get_platform()
 
     # Get sizes in bytes from runtime
-    usage = runtime.du()
+    usage = platform.du()
 
     # Convert to dict for processing
     usage_dict = usage.model_dump(exclude_none=True, exclude_defaults=False)

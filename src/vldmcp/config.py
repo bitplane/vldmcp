@@ -4,7 +4,7 @@ import tomllib
 import tomli_w
 
 from . import paths
-from .models.config import Config, RuntimeConfig, NativeConfig, PodmanConfig
+from .models.config import Config, PlatformConfig, NativeConfig, PodmanConfig
 
 
 class ConfigManager:
@@ -53,17 +53,17 @@ class ConfigManager:
         """Get the current configuration."""
         return self._load()
 
-    def set_runtime_type(self, runtime_type: str) -> None:
-        """Set the runtime type and save configuration."""
+    def set_platform_type(self, platform_type: str) -> None:
+        """Set the platform type and save configuration."""
         config = self._load()
 
-        # Create new runtime config based on type
-        if runtime_type == "native":
-            config.runtime = NativeConfig()
-        elif runtime_type == "podman":
-            config.runtime = PodmanConfig()
+        # Create new platform config based on type
+        if platform_type == "native":
+            config.platform = NativeConfig()
+        elif platform_type == "podman":
+            config.platform = PodmanConfig()
         else:
-            config.runtime = RuntimeConfig(type=runtime_type)
+            config.platform = PlatformConfig(type=platform_type)
 
         self._save()
 
@@ -82,6 +82,6 @@ def get_config() -> Config:
     return config_manager.get()
 
 
-def set_runtime_type(runtime_type: str) -> None:
-    """Set the runtime type in configuration."""
-    config_manager.set_runtime_type(runtime_type)
+def set_platform_type(platform_type: str) -> None:
+    """Set the platform type in configuration."""
+    config_manager.set_platform_type(platform_type)
