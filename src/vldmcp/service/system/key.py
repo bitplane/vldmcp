@@ -1,8 +1,8 @@
 """Key management service for vldmcp."""
 
 from pathlib import Path
-from .service import Service
-from . import crypto
+from ...service import Service
+from ... import crypto
 
 
 class KeyService(Service):

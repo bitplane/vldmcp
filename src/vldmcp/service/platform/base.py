@@ -7,10 +7,10 @@ from pathlib import Path
 from ..config import get_config
 from ..service import Service
 from ..installer import InstallerService
-from ..config_service import ConfigService
+from ..config import ConfigService
 from ..key_service import KeyService
 from ..file_service import FileService
-from ..daemon_service import DaemonService
+from ..daemon import DaemonService
 from ..models.disk_usage import DiskUsage, InstallUsage, McpUsage
 from ..models.info import ClientInfo
 

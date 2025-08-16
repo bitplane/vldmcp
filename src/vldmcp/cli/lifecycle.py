@@ -3,7 +3,7 @@
 import click
 
 from ..platform import get_platform
-from ..config import set_platform_type
+from ..service.system.config import set_platform_type
 from ..models.config import PLATFORM_TYPES
 from ..util.pprint import pprint_size
 from ..util.output import output_nested_dict

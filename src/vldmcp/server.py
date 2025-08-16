@@ -9,13 +9,13 @@ import sys
 import time
 
 from . import crypto
-from .file_service import FileService
+from .service.system.storage import Storage
 
 
 def main():
     """Main entry point for the server module."""
     # Create file service for path management
-    file_service = FileService()
+    file_service = Storage()
     file_service.start()
 
     # Ensure XDG directories exist

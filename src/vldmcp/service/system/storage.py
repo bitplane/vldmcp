@@ -5,7 +5,7 @@ from pathlib import Path
 from .service import Service
 
 
-class FileService(Service):
+class Storage(Service):
     """Service that manages file system access with permission control."""
 
     @classmethod

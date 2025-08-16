@@ -28,7 +28,7 @@ from nacl.encoding import RawEncoder
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from .file_service import FileService
+    from .storage import Storage
 
 
 # -------------------------------
@@ -60,7 +60,7 @@ def load_key(key_path: Path) -> Optional[bytes]:
     return data
 
 
-def ensure_user_key(file_service: Optional["FileService"] = None) -> bytes:
+def ensure_user_key(file_service: Optional["Storage"] = None) -> bytes:
     """Ensure the user identity key exists (32 bytes), generating if necessary."""
     if file_service:
         user_key_path = file_service.user_key_path()
@@ -75,7 +75,7 @@ def ensure_user_key(file_service: Optional["FileService"] = None) -> bytes:
     return key
 
 
-def ensure_node_key(node_id: str, file_service: Optional["FileService"] = None) -> bytes:
+def ensure_node_key(node_id: str, file_service: Optional["Storage"] = None) -> bytes:
     """Ensure a node key exists (32 bytes), generating if necessary."""
     if file_service:
         node_key_path = file_service.node_key_path(node_id)

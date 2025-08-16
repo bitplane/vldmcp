@@ -1,7 +1,7 @@
 """Shared pytest fixtures for vldmcp tests."""
 
 import pytest
-from vldmcp.file_service import FileService
+from vldmcp.service.system.storage import Storage
 
 
 @pytest.fixture
@@ -22,6 +22,6 @@ def xdg_dirs(tmp_path, monkeypatch):
 @pytest.fixture
 def file_service(xdg_dirs):
     """Get a FileService instance with temporary directories."""
-    service = FileService()
+    service = Storage()
     service.start()
     return service
