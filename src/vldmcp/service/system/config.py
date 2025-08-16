@@ -53,15 +53,13 @@ class ConfigService(Service):
                     data = tomllib.load(f)
                 self._config = Config.model_validate(data)
             except (tomllib.TOMLDecodeError, OSError, ValueError) as e:
-                # If config is invalid, fall back to defaults and save
+                # If config is invalid, fall back to defaults but don't save
                 print(f"Warning: Invalid config file {self._config_path}: {e}")
                 print("Using default configuration")
                 self._config = Config()
-                self.save()
         else:
-            # Create default config
+            # Use default config but don't auto-create file
             self._config = Config()
-            self.save()
 
         return self._config
 
@@ -124,6 +122,15 @@ class ConfigService(Service):
 
 # Global config service instance for backward compatibility
 _global_config_service = None
+
+
+def get_config_service() -> ConfigService:
+    """Get the global config service instance."""
+    global _global_config_service
+    if _global_config_service is None:
+        _global_config_service = ConfigService()
+        _global_config_service.start()
+    return _global_config_service
 
 
 def get_config() -> Config:

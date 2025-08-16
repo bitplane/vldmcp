@@ -3,7 +3,7 @@
 import shutil
 
 from ...util.version import is_development
-from ..system.config import get_config, set_platform_type
+from ..system.config import get_config
 from . import PlatformBackend, NativePlatform
 
 try:
@@ -54,9 +54,8 @@ def get_platform(name: str = "guess") -> PlatformBackend:
     if name == "guess":
         config = get_config()
         if config.platform.type == "guess":
-            # Auto-detect and save
+            # Auto-detect but don't save (avoid crashes when config dir is removed)
             detected_type = guess_platform()
-            set_platform_type(detected_type)
             name = detected_type
         else:
             name = config.platform.type

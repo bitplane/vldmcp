@@ -105,23 +105,20 @@ def test_get_platform_guess_auto_detects():
     with (
         patch("vldmcp.service.platform.detection.get_config", return_value=mock_config),
         patch("vldmcp.service.platform.detection.guess_platform", return_value="native"),
-        patch("vldmcp.service.platform.detection.set_platform_type") as mock_set,
     ):
         platform = get_platform("guess")
         assert isinstance(platform, NativePlatform)
-        mock_set.assert_called_once_with("native")
 
 
-def test_get_platform_guess_saves_detection():
-    """Test that auto-detection saves the result to config."""
+def test_get_platform_guess_does_not_save():
+    """Test that auto-detection does NOT save the result to config."""
     mock_config = MagicMock()
     mock_config.platform.type = "guess"
 
     with (
         patch("vldmcp.service.platform.detection.get_config", return_value=mock_config),
         patch("vldmcp.service.platform.detection.is_development", return_value=True),
-        patch("vldmcp.service.platform.detection.set_platform_type") as mock_set,
     ):
         platform = get_platform("guess")
         assert isinstance(platform, NativePlatform)
-        mock_set.assert_called_once_with("native")
+        # Detection should work without trying to save config

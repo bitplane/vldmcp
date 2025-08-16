@@ -6,6 +6,6 @@ dist
 coverage.json
 site
 docs/pydoc
-
+*.swp
 # used for batching up agent operations
 todo.md

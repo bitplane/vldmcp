@@ -105,6 +105,12 @@ class PlatformBackend(Service):
         # Ensure secure permissions
         self.storage.ensure_secure_permissions()
 
+        # Save config to establish deployment
+        from ..system.config import get_config_service
+
+        config_service = get_config_service()
+        config_service.save()
+
         # Build if needed (subclasses can override)
         return self.build_if_needed()
 
@@ -158,10 +164,26 @@ class PlatformBackend(Service):
         """Get deployment status (default implementation).
 
         Returns:
-            Status string ("running", "stopped", "not running", etc.)
+            Status string ("running", "stopped", "not deployed", etc.)
         """
-        # Default implementation - platforms should override
-        return "unknown"
+        # Check if deployed (config exists)
+        config_dir = self.storage.config_dir()
+        if not config_dir.exists():
+            return "not deployed"
+
+        # Check if daemon is running
+        pid_file = self.storage.pid_file_path()
+        if pid_file.exists():
+            try:
+                import psutil
+
+                pid = int(pid_file.read_text().strip())
+                if psutil.pid_exists(pid):
+                    return "running"
+            except (ValueError, OSError):
+                pass
+
+        return "stopped"
 
     def remove(self, config: bool = False, purge: bool = False) -> list[tuple[str, Path]]:
         """Remove the platform environment.
