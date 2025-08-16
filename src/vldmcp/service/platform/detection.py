@@ -3,7 +3,6 @@
 import shutil
 
 from ...util.version import is_development
-from ..system.config import get_config
 from . import PlatformBackend, NativePlatform
 
 try:
@@ -50,15 +49,9 @@ def get_platform(name: str = "guess") -> PlatformBackend:
         ValueError: If platform name is invalid
         RuntimeError: If auto-detection fails
     """
-    # If name is "guess", check config first, then auto-detect
+    # If name is "guess", auto-detect
     if name == "guess":
-        config = get_config()
-        if config.platform.type == "guess":
-            # Auto-detect but don't save (avoid crashes when config dir is removed)
-            detected_type = guess_platform()
-            name = detected_type
-        else:
-            name = config.platform.type
+        name = guess_platform()
 
     # Normalize name
     name = name.lower().strip()

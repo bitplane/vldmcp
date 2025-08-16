@@ -3,7 +3,6 @@
 import click
 
 from ..service.platform import get_platform
-from ..service.system.config import set_platform_type
 from ..models.config import PLATFORM_TYPES
 from ..util.pprint import pprint_size
 from ..util.output import output_nested_dict
@@ -34,18 +33,19 @@ def server():
 )
 def deploy(platform, recover, show_seed):
     """Deploy vldmcp platform and prepare environment."""
-    from .. import crypto
-
     click.echo("Setting up vldmcp...")
 
     # Set platform type if specified
     if platform != "guess":
         click.echo(f"Using {platform} platform")
-        set_platform_type(platform)
+        platform_instance = get_platform()
+        config_service = platform_instance.get_service("config")
+        config_service.set_platform_type(platform)
 
     # Handle seed phrase recovery or generation
-    platform = get_platform()
-    user_key_path = platform.storage.user_key_path()
+    platform_instance = get_platform()
+    user_key_path = platform_instance.storage.user_key_path()
+    crypto_service = platform_instance.get_service("crypto")
 
     if recover:
         # Recovery mode - prompt for seed phrase
@@ -55,12 +55,12 @@ def deploy(platform, recover, show_seed):
 
         # Validate and recover key
         try:
-            if not crypto.is_valid_mnemonic(mnemonic):
+            if not crypto_service.is_valid_mnemonic(mnemonic):
                 click.echo("❌ Invalid seed phrase. Please check your words and try again.")
                 raise SystemExit(1)
 
-            key = crypto.key_from_mnemonic(mnemonic)
-            crypto.save_key(key, user_key_path)
+            key = crypto_service.key_from_mnemonic(mnemonic)
+            crypto_service.save_key(key, user_key_path)
             click.echo("✅ Identity recovered successfully!")
 
         except ValueError as e:
@@ -70,8 +70,8 @@ def deploy(platform, recover, show_seed):
     elif not user_key_path.exists():
         # New installation - generate new identity
         click.echo("\n🔑 Generating new identity...")
-        mnemonic, key = crypto.generate_mnemonic_and_key()
-        crypto.save_key(key, user_key_path)
+        mnemonic, key = crypto_service.generate_mnemonic_and_key()
+        crypto_service.save_key(key, user_key_path)
 
         if show_seed:
             click.echo("\n⚠️  IMPORTANT: Write down your seed phrase!")
@@ -230,10 +230,9 @@ def stop():
 @server.command()
 def export_seed():
     """Export the seed phrase for your identity."""
-    from .. import crypto
-
     platform = get_platform()
     user_key_path = platform.storage.user_key_path()
+    crypto_service = platform.get_service("crypto")
 
     if not user_key_path.exists():
         click.echo("❌ No identity found. Run 'vldmcp server deploy' first.")
@@ -246,12 +245,12 @@ def export_seed():
         return
 
     try:
-        key = crypto.load_key(user_key_path)
+        key = crypto_service.load_key(user_key_path)
         if not key:
             click.echo("❌ Failed to load identity key.")
             raise SystemExit(1)
 
-        mnemonic = crypto.mnemonic_from_key(key)
+        mnemonic = crypto_service.mnemonic_from_key(key)
 
         click.echo("\n🔑 Your seed phrase (24 words):\n")
         click.echo(f"  {mnemonic}\n")

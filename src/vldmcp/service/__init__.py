@@ -72,9 +72,6 @@ class Service(ABC):
     # Hosting capabilities - services can host other services
     def add_service(self, service):
         """Add a child service to this service."""
-        # Validate that it's actually a service
-        if not isinstance(service, Service):
-            raise TypeError(f"Expected Service instance, got {type(service)}")
 
         name = service.name()
 
@@ -83,7 +80,7 @@ class Service(ABC):
             raise ValueError(f"Service '{name}' already registered")
 
         # Check if attribute already exists and isn't a service
-        if hasattr(self, name) and not isinstance(getattr(self, name), Service):
+        if isinstance(self.name, Service):
             existing = getattr(self, name)
             raise ValueError(f"{self.name()} already has {name} of type {type(existing)}")
 
@@ -98,8 +95,7 @@ class Service(ABC):
         if name in self.services:
             service = self.services.pop(name)
             # Also remove from __dict__
-            if hasattr(self, name):
-                delattr(self, name)
+            delattr(self, name)
             service.parent = None
             service.root = None
 

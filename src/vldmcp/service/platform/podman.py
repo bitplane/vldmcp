@@ -6,7 +6,6 @@ import subprocess
 from pathlib import Path
 
 from ... import __version__
-from ..system.config import get_config
 from ...models.disk_usage import DiskUsage
 from .base import PlatformBackend
 
@@ -16,9 +15,10 @@ class PodmanPlatform(PlatformBackend):
 
     def _get_podman_config(self):
         """Get podman-specific configuration values."""
-        config = get_config()
-        plat = getattr(config, "platform", None)
-        if hasattr(plat, "image_name") and hasattr(plat, "container_name"):
+        config_service = self.get_service("config")
+        if config_service:
+            config = config_service.get()
+            plat = config.platform
             return plat.image_name, plat.container_name
         # Fallback to defaults if config doesn't have podman-specific fields
         return "vldmcp:latest", "vldmcp-server"

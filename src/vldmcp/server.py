@@ -8,8 +8,8 @@ import os
 import sys
 import time
 
-from . import crypto
 from .service.system.storage import Storage
+from .service.system.crypto import CryptoService
 
 
 def main():
@@ -22,7 +22,8 @@ def main():
     file_service.create_directories()
 
     # Ensure user key exists
-    crypto.ensure_user_key(file_service)
+    crypto_service = CryptoService()
+    crypto_service.ensure_user_key(file_service)
 
     # Write PID file (inside container this goes to /var/run, outside it's managed by deployment)
     pid_file = file_service.pid_file_path()

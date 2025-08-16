@@ -2,11 +2,15 @@
 
 from pathlib import Path
 from .. import Service
-from ... import crypto
+from .crypto import CryptoService
 
 
 class KeyService(Service):
     """Service that manages cryptographic keys."""
+
+    def __init__(self):
+        super().__init__()
+        self._crypto = CryptoService()
 
     @classmethod
     def name(cls) -> str:
@@ -27,7 +31,7 @@ class KeyService(Service):
         Returns:
             The user key bytes
         """
-        return crypto.ensure_user_key(self.parent.storage)
+        return self._crypto.ensure_user_key(self.parent.storage)
 
     def ensure_node_key(self, node_id: str) -> bytes:
         """Ensure a node key exists, generating if necessary.
@@ -38,7 +42,7 @@ class KeyService(Service):
         Returns:
             The node key bytes
         """
-        return crypto.ensure_node_key(node_id, self.parent.storage)
+        return self._crypto.ensure_node_key(node_id, self.parent.storage)
 
     def generate_key(self) -> bytes:
         """Generate a new 32-byte key.
@@ -46,7 +50,7 @@ class KeyService(Service):
         Returns:
             New key bytes
         """
-        return crypto.generate_key()
+        return self._crypto.generate_key()
 
     def generate_mnemonic_and_key(self) -> tuple[str, bytes]:
         """Generate a new mnemonic phrase and corresponding key.
@@ -54,7 +58,7 @@ class KeyService(Service):
         Returns:
             Tuple of (mnemonic phrase, key bytes)
         """
-        return crypto.generate_mnemonic_and_key()
+        return self._crypto.generate_mnemonic_and_key()
 
     def key_from_mnemonic(self, mnemonic: str) -> bytes:
         """Derive a key from a mnemonic phrase.
@@ -65,7 +69,7 @@ class KeyService(Service):
         Returns:
             Derived key bytes
         """
-        return crypto.key_from_mnemonic(mnemonic)
+        return self._crypto.key_from_mnemonic(mnemonic)
 
     def mnemonic_from_key(self, key: bytes) -> str:
         """Convert a key to a mnemonic phrase.
@@ -76,7 +80,7 @@ class KeyService(Service):
         Returns:
             BIP39 mnemonic phrase
         """
-        return crypto.mnemonic_from_key(key)
+        return self._crypto.mnemonic_from_key(key)
 
     def is_valid_mnemonic(self, mnemonic: str) -> bool:
         """Check if a mnemonic phrase is valid.
@@ -87,7 +91,7 @@ class KeyService(Service):
         Returns:
             True if valid, False otherwise
         """
-        return crypto.is_valid_mnemonic(mnemonic)
+        return self._crypto.is_valid_mnemonic(mnemonic)
 
     def save_key(self, key: bytes, path: Path) -> None:
         """Save a key to a file with secure permissions.
@@ -96,7 +100,7 @@ class KeyService(Service):
             key: Key bytes to save
             path: Path to save to
         """
-        crypto.save_key(key, path)
+        self._crypto.save_key(key, path)
 
     def load_key(self, path: Path) -> bytes | None:
         """Load a key from a file.
@@ -107,4 +111,4 @@ class KeyService(Service):
         Returns:
             Key bytes if found, None otherwise
         """
-        return crypto.load_key(path)
+        return self._crypto.load_key(path)

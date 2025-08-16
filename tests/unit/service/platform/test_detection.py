@@ -1,7 +1,7 @@
 """Tests for platform detection logic."""
 
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 from vldmcp.service.platform.detection import guess_platform, get_platform
 from vldmcp.service.platform.native import NativePlatform
@@ -87,38 +87,8 @@ def test_get_platform_podman_not_available():
             get_platform("podman")
 
 
-def test_get_platform_guess_uses_config():
-    """Test that guess mode uses config when available."""
-    mock_config = MagicMock()
-    mock_config.platform.type = "native"
-
-    with patch("vldmcp.service.platform.detection.get_config", return_value=mock_config):
-        platform = get_platform("guess")
-        assert isinstance(platform, NativePlatform)
-
-
 def test_get_platform_guess_auto_detects():
-    """Test that guess mode auto-detects when config is 'guess'."""
-    mock_config = MagicMock()
-    mock_config.platform.type = "guess"
-
-    with (
-        patch("vldmcp.service.platform.detection.get_config", return_value=mock_config),
-        patch("vldmcp.service.platform.detection.guess_platform", return_value="native"),
-    ):
+    """Test that guess mode always auto-detects."""
+    with patch("vldmcp.service.platform.detection.guess_platform", return_value="native"):
         platform = get_platform("guess")
         assert isinstance(platform, NativePlatform)
-
-
-def test_get_platform_guess_does_not_save():
-    """Test that auto-detection does NOT save the result to config."""
-    mock_config = MagicMock()
-    mock_config.platform.type = "guess"
-
-    with (
-        patch("vldmcp.service.platform.detection.get_config", return_value=mock_config),
-        patch("vldmcp.service.platform.detection.is_development", return_value=True),
-    ):
-        platform = get_platform("guess")
-        assert isinstance(platform, NativePlatform)
-        # Detection should work without trying to save config

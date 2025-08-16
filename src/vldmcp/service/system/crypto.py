@@ -179,7 +179,7 @@ class CryptoService(Service):
         """
         if storage_service is None:
             # Try to get storage from parent
-            if self.parent and hasattr(self.parent, "storage"):
+            if self.parent:
                 storage_service = self.parent.storage
             else:
                 raise ValueError("Storage service is required")
@@ -211,7 +211,7 @@ class CryptoService(Service):
         """
         if storage_service is None:
             # Try to get storage from parent
-            if self.parent and hasattr(self.parent, "storage"):
+            if self.parent:
                 storage_service = self.parent.storage
             else:
                 raise ValueError("Storage service is required")
@@ -251,65 +251,23 @@ class CryptoService(Service):
         return blake3.blake3(public_key).hexdigest()[:40]
 
 
-# Global crypto service instance for backward compatibility
-_global_crypto_service = None
+def ed25519_keypair_from_seed(seed32: bytes) -> tuple[bytes, bytes]:
+    """Return (public_key32, private_key64) from a 32-byte Ed25519 seed.
+
+    Not needed for storage; useful for signing/tests.
+    """
+    from nacl.signing import SigningKey
+    from nacl.encoding import RawEncoder
+
+    if len(seed32) != 32:
+        raise ValueError("Seed must be 32 bytes for Ed25519.")
+    sk = SigningKey(seed32)
+    pk = sk.verify_key
+    return (pk.encode(encoder=RawEncoder), sk.encode(encoder=RawEncoder))
 
 
-def get_crypto_service() -> CryptoService:
-    """Get the global crypto service instance."""
-    global _global_crypto_service
-    if _global_crypto_service is None:
-        _global_crypto_service = CryptoService()
-        _global_crypto_service.start()
-    return _global_crypto_service
+def generate_node_id() -> str:
+    """Generate a random node ID (hex)."""
+    import secrets
 
-
-# Backward compatibility functions that delegate to the service
-def generate_key() -> bytes:
-    """Generate a new 32-byte key."""
-    return get_crypto_service().generate_key()
-
-
-def mnemonic_from_key(key: bytes) -> str:
-    """Convert a 32-byte key to a 24-word BIP-39 mnemonic phrase."""
-    return get_crypto_service().mnemonic_from_key(key)
-
-
-def key_from_mnemonic(mnemonic: str) -> bytes:
-    """Convert a 24-word mnemonic phrase to a 32-byte key."""
-    return get_crypto_service().key_from_mnemonic(mnemonic)
-
-
-def generate_mnemonic_and_key() -> tuple[str, bytes]:
-    """Generate a new mnemonic phrase and corresponding key."""
-    return get_crypto_service().generate_mnemonic_and_key()
-
-
-def is_valid_mnemonic(mnemonic: str) -> bool:
-    """Check if a mnemonic phrase is valid BIP-39."""
-    return get_crypto_service().is_valid_mnemonic(mnemonic)
-
-
-def save_key(key: bytes, path: Path) -> None:
-    """Save a key to a file with secure permissions."""
-    return get_crypto_service().save_key(key, path)
-
-
-def load_key(path: Path) -> bytes | None:
-    """Load a key from a file."""
-    return get_crypto_service().load_key(path)
-
-
-def ensure_user_key(storage_service: Storage | None = None) -> bytes:
-    """Ensure the user identity key exists, generating if necessary."""
-    return get_crypto_service().ensure_user_key(storage_service)
-
-
-def ensure_node_key(node_id: str, storage_service: Storage | None = None) -> bytes:
-    """Ensure a node key exists, generating if necessary."""
-    return get_crypto_service().ensure_node_key(node_id, storage_service)
-
-
-def generate_node_id(key: bytes) -> str:
-    """Generate a node ID from a key."""
-    return get_crypto_service().generate_node_id(key)
+    return secrets.token_hex(16)

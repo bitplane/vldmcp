@@ -109,39 +109,6 @@ class ConfigService(Service):
 
         # Update config with new values
         for key, value in kwargs.items():
-            if hasattr(self._config, key):
-                setattr(self._config, key, value)
+            setattr(self._config, key, value)
 
         self.save()
-
-
-# Global config service instance for backward compatibility
-_global_config_service = None
-
-
-def get_config_service() -> ConfigService:
-    """Get the global config service instance."""
-    global _global_config_service
-    if _global_config_service is None:
-        from .storage import Storage
-
-        storage = Storage()
-        _global_config_service = ConfigService(storage)
-        _global_config_service.start()
-    return _global_config_service
-
-
-def get_config() -> Config:
-    """Get the current configuration.
-
-    This function provides backward compatibility with old config.py imports.
-    """
-    return get_config_service().get()
-
-
-def set_platform_type(platform_type: str) -> None:
-    """Set the platform type in configuration.
-
-    This function provides backward compatibility with old config.py imports.
-    """
-    get_config_service().set_platform_type(platform_type)

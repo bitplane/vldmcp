@@ -4,7 +4,6 @@ import subprocess
 from abc import abstractmethod
 from pathlib import Path
 
-from ..system.config import get_config
 from .. import Service
 from ..system.config import ConfigService
 from ..system.key import KeyService
@@ -99,18 +98,16 @@ class PlatformBackend(Service):
         self.storage.create_directories()
 
         # Ensure user identity key exists
-        from ... import crypto
-
-        crypto.ensure_user_key(self.storage)
+        crypto_service = self.get_service("crypto")
+        crypto_service.ensure_user_key(self.storage)
 
         # Ensure secure permissions
         self.storage.ensure_secure_permissions()
 
         # Save config to establish deployment
-        from ..system.config import get_config_service
-
-        config_service = get_config_service()
-        config_service.save()
+        config_service = self.get_service("config")
+        if config_service:
+            config_service.save()
 
         # Build if needed (subclasses can override)
         return self.build_if_needed()
@@ -138,11 +135,12 @@ class PlatformBackend(Service):
         Returns:
             ClientInfo with current runtime status and configuration
         """
-        config = get_config()
+        config_service = self.get_service("config")
+        config = config_service.get() if config_service else None
 
         # Get ports from config
         ports = []
-        if hasattr(config.platform, "ports"):
+        if config:
             ports = config.platform.ports
 
         # Get server PID if running
