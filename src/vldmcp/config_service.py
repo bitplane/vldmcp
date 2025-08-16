@@ -2,7 +2,6 @@
 
 from .service import Service
 from .models.config import Config
-from . import paths
 
 
 class ConfigService(Service):
@@ -11,7 +10,11 @@ class ConfigService(Service):
     def __init__(self):
         super().__init__()
         self._config = None
-        self._config_path = paths.config_dir() / "config.toml"
+
+    @property
+    def _config_path(self):
+        """Get config file path from FileService."""
+        return self.parent.files.config_dir() / "config.toml"
 
     @classmethod
     def name(cls) -> str:

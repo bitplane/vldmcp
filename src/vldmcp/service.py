@@ -9,7 +9,8 @@ class Service(ABC):
     version = "0.0.1"
 
     def __init__(self):
-        self.host = None  # Parent service that hosts this one
+        self.parent = None  # Immediate parent service
+        self.root = None  # Top-level service in the hierarchy
         self._running = False
         self.services = {}  # Child services this service hosts
 
@@ -50,17 +51,36 @@ class Service(ABC):
     # Hosting capabilities - services can host other services
     def add_service(self, service):
         """Add a child service to this service."""
+        # Validate that it's actually a service
+        if not isinstance(service, Service):
+            raise TypeError(f"Expected Service instance, got {type(service)}")
+
         name = service.name()
+
+        # Check if name already exists in services
         if name in self.services:
             raise ValueError(f"Service '{name}' already registered")
+
+        # Check if attribute already exists and isn't a service
+        if hasattr(self, name) and not isinstance(getattr(self, name), Service):
+            existing = getattr(self, name)
+            raise ValueError(f"{self.name()} already has {name} of type {type(existing)}")
+
         self.services[name] = service
-        service.host = self
+        # Also add to __dict__ for attribute access
+        setattr(self, name, service)
+        service.parent = self
+        service.root = self.root if self.root else self
 
     def remove_service(self, name: str):
         """Remove a child service from this service."""
         if name in self.services:
             service = self.services.pop(name)
-            service.host = None
+            # Also remove from __dict__
+            if hasattr(self, name):
+                delattr(self, name)
+            service.parent = None
+            service.root = None
 
     def get_service(self, name: str):
         """Get a child service by name."""
@@ -94,7 +114,7 @@ class Service(ABC):
             raise NotImplementedError("Method dispatch not yet implemented")
 
         # Ask parent to route
-        if self.host:
-            return self.host.call_service(target_service, method, request)
+        if self.parent:
+            return self.parent.call_service(target_service, method, request)
 
         raise RuntimeError(f"Service '{target_service}' not found")

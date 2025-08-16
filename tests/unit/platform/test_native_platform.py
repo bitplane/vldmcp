@@ -1,7 +1,6 @@
 """Unit tests for NativePlatform functionality."""
 
 from vldmcp.platform import NativePlatform
-from vldmcp import paths
 
 
 def test_native_platform_creates_core_services(xdg_dirs):
@@ -24,12 +23,12 @@ def test_native_install_creates_directories(xdg_dirs):
     result = platform.install()
 
     assert result is True
-    assert paths.data_dir().exists()
-    assert paths.config_dir().exists()
-    assert paths.state_dir().exists()
-    assert paths.cache_dir().exists()
-    assert paths.runtime_dir().exists()
-    assert paths.user_key_path().exists()
+    assert platform.files.data_dir().exists()
+    assert platform.files.config_dir().exists()
+    assert platform.files.state_dir().exists()
+    assert platform.files.cache_dir().exists()
+    assert platform.files.runtime_dir().exists()
+    assert platform.files.user_key_path().exists()
 
 
 def test_native_install_preserves_existing_key(xdg_dirs):
@@ -37,7 +36,7 @@ def test_native_install_preserves_existing_key(xdg_dirs):
     platform = NativePlatform()
 
     # Create a key file first
-    key_path = paths.user_key_path()
+    key_path = platform.files.user_key_path()
     key_path.parent.mkdir(parents=True, exist_ok=True)
     test_key = b"test_key_content_32_bytes_exactly!" * 1  # 34 bytes, but we'll trim
     test_key = test_key[:32]  # Make it exactly 32 bytes
@@ -61,7 +60,7 @@ def test_native_install_idempotent(xdg_dirs):
     assert result1 is True
 
     # Get the key that was created
-    key_path = paths.user_key_path()
+    key_path = platform.files.user_key_path()
     original_key = key_path.read_bytes()
 
     # Second install - should succeed and not change the key
@@ -78,7 +77,7 @@ def test_native_deploy_calls_install(xdg_dirs):
     result = platform.deploy()
 
     assert result is True
-    assert paths.user_key_path().exists()
+    assert platform.files.user_key_path().exists()
 
 
 def test_native_build_if_needed_returns_true(xdg_dirs):

@@ -27,7 +27,7 @@ class DaemonService(Service):
         if self._running:
             return
 
-        pid_file = self.host.services["files"].pid_file_path()
+        pid_file = self.parent.files.pid_file_path()
 
         if debug:
             # Run in foreground for debugging

@@ -5,7 +5,6 @@ from pathlib import Path
 
 import psutil
 
-from .. import paths
 from .base import PlatformBackend
 
 
@@ -26,7 +25,7 @@ class NativePlatform(PlatformBackend):
         super().start()
 
         # Check for existing daemon
-        pid_file = paths.pid_file_path()
+        pid_file = self.files.pid_file_path()
         if pid_file.exists():
             try:
                 existing_pid = int(pid_file.read_text().strip())
@@ -51,7 +50,7 @@ class NativePlatform(PlatformBackend):
     def stop(self):
         """Stop the native platform (which stops vldmcpd daemon)."""
         daemon_process = getattr(self, "_daemon_process", None)
-        pid_file = paths.pid_file_path()
+        pid_file = self.files.pid_file_path()
 
         if daemon_process and daemon_process.is_running():
             try:

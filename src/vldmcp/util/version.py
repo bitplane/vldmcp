@@ -1,12 +1,12 @@
-from __future__ import annotations
-from importlib.metadata import version, PackageNotFoundError
 import subprocess
+from importlib.metadata import version, PackageNotFoundError
 from pathlib import Path
+import vldmcp
 
 
 def is_development() -> bool:
     # cheap check, no branching elsewhere
-    return (Path(__file__).resolve().parents[3] / ".git").exists()
+    return (Path(vldmcp.__file__).parent.parent.parent / ".git").exists()
 
 
 def _git_describe() -> str | None:

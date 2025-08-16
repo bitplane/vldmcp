@@ -2,7 +2,6 @@
 
 import click
 
-from .. import paths
 from ..platform import get_platform
 from ..config import set_platform_type
 from ..models.config import PLATFORM_TYPES
@@ -45,7 +44,8 @@ def install(platform, recover, show_seed):
         set_platform_type(platform)
 
     # Handle seed phrase recovery or generation
-    user_key_path = paths.user_key_path()
+    platform = get_platform()
+    user_key_path = platform.files.user_key_path()
 
     if recover:
         # Recovery mode - prompt for seed phrase
@@ -115,8 +115,8 @@ def uninstall(config, purge, yes):
     platform = get_platform()
 
     # Get list of what will be removed (for display)
-    install_dir = paths.install_dir()
-    cache_dir = paths.cache_dir()
+    install_dir = platform.files.install_dir()
+    cache_dir = platform.files.cache_dir()
 
     dirs_to_show = []
     # Always remove install and cache
@@ -127,9 +127,9 @@ def uninstall(config, purge, yes):
 
     # --config flag: also remove config and state/runtime
     if config or purge:
-        config_dir = paths.config_dir()
-        state_dir = paths.state_dir()
-        runtime_dir = paths.runtime_dir()
+        config_dir = platform.files.config_dir()
+        state_dir = platform.files.state_dir()
+        runtime_dir = platform.files.runtime_dir()
 
         if config_dir.exists():
             dirs_to_show.append(("Configuration", config_dir))
@@ -140,7 +140,7 @@ def uninstall(config, purge, yes):
 
     # --purge flag: also remove user data (including keys)
     if purge:
-        data_dir = paths.data_dir()
+        data_dir = platform.files.data_dir()
         if data_dir.exists():
             dirs_to_show.append(("User data (including keys)", data_dir))
 
@@ -228,7 +228,8 @@ def export_seed():
     """Export the seed phrase for your identity."""
     from .. import crypto
 
-    user_key_path = paths.user_key_path()
+    platform = get_platform()
+    user_key_path = platform.files.user_key_path()
 
     if not user_key_path.exists():
         click.echo("❌ No identity found. Run 'vldmcp server install' first.")
@@ -263,7 +264,8 @@ def logs():
     """View the server logs."""
     platform = get_platform()
     # Get PID from file and stream logs
-    pid_file = paths.pid_file_path()
+    platform = get_platform()
+    pid_file = platform.files.pid_file_path()
     if not pid_file.exists():
         click.echo("Server not running")
         return

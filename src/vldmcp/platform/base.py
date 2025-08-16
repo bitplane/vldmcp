@@ -4,7 +4,6 @@ import subprocess
 from abc import abstractmethod
 from pathlib import Path
 
-from .. import paths
 from ..config import get_config
 from ..service import Service
 from ..installer import InstallerService
@@ -64,20 +63,20 @@ class PlatformBackend(Service):
                 return 0
 
         # Calculate base sizes
-        config_size = get_dir_size(paths.config_dir()) + get_dir_size(paths.runtime_dir())
+        config_size = get_dir_size(self.files.config_dir()) + get_dir_size(self.files.runtime_dir())
 
         # Install breakdown
-        install_dir = paths.install_dir()
+        install_dir = self.files.install_dir()
         install_image_size = get_dir_size(install_dir / "base") if install_dir.exists() else 0
-        install_data_size = get_dir_size(paths.data_dir()) + get_dir_size(paths.state_dir())
+        install_data_size = get_dir_size(self.files.data_dir()) + get_dir_size(self.files.state_dir())
 
         # MCP breakdown
-        repos_size = get_dir_size(paths.repos_dir())
+        repos_size = get_dir_size(self.files.repos_dir())
         mcp_images_size = 0  # Container backends will override this
-        mcp_data_size = get_dir_size(paths.cache_dir())
+        mcp_data_size = get_dir_size(self.files.cache_dir())
 
         # WWW data
-        www_size = get_dir_size(paths.www_dir())
+        www_size = get_dir_size(self.files.www_dir())
 
         return DiskUsage(
             config=config_size,
@@ -140,7 +139,7 @@ class PlatformBackend(Service):
 
         # Get server PID if running
         server_pid = None
-        pid_file = paths.pid_file_path()
+        pid_file = self.files.pid_file_path()
         if pid_file.exists():
             try:
                 server_pid = pid_file.read_text().strip()

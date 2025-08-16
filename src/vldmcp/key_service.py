@@ -27,7 +27,7 @@ class KeyService(Service):
         Returns:
             The user key bytes
         """
-        return crypto.ensure_user_key()
+        return crypto.ensure_user_key(self.parent.files)
 
     def ensure_node_key(self, node_id: str) -> bytes:
         """Ensure a node key exists, generating if necessary.
@@ -38,7 +38,7 @@ class KeyService(Service):
         Returns:
             The node key bytes
         """
-        return crypto.ensure_node_key(node_id)
+        return crypto.ensure_node_key(node_id, self.parent.files)
 
     def generate_key(self) -> bytes:
         """Generate a new 32-byte key.

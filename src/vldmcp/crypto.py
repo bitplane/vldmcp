@@ -25,7 +25,6 @@ from mnemonic import Mnemonic
 from nacl.signing import SigningKey
 from nacl.encoding import RawEncoder
 
-from . import paths
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -66,8 +65,7 @@ def ensure_user_key(file_service: Optional["FileService"] = None) -> bytes:
     if file_service:
         user_key_path = file_service.user_key_path()
     else:
-        # Backward compatibility
-        user_key_path = paths.user_key_path()
+        raise ValueError("FileService is required")
 
     key = load_key(user_key_path)
     if key is not None:
@@ -82,8 +80,7 @@ def ensure_node_key(node_id: str, file_service: Optional["FileService"] = None) 
     if file_service:
         node_key_path = file_service.node_key_path(node_id)
     else:
-        # Backward compatibility
-        node_key_path = paths.node_key_path(node_id)
+        raise ValueError("FileService is required")
 
     key = load_key(node_key_path)
     if key is not None:

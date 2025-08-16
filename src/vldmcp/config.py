@@ -1,9 +1,10 @@
 """Configuration management for vldmcp using Pydantic models and TOML."""
 
+import os
 import tomllib
 import tomli_w
+from pathlib import Path
 
-from . import paths
 from .models.config import Config, PlatformConfig, NativeConfig, PodmanConfig
 
 
@@ -12,7 +13,13 @@ class ConfigManager:
 
     def __init__(self):
         self._config: Config | None = None
-        self._config_file = paths.config_dir() / "config.toml"
+
+    @property
+    def _config_file(self) -> Path:
+        xdg_config = os.environ.get("XDG_CONFIG_HOME")
+        if xdg_config:
+            return Path(xdg_config) / "vldmcp" / "config.toml"
+        return Path.home() / ".config" / "vldmcp" / "config.toml"
 
     def _load(self) -> Config:
         """Load configuration from TOML file."""
