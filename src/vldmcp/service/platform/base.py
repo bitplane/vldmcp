@@ -5,7 +5,6 @@ from pathlib import Path
 
 from .. import Service
 from ..system.config import ConfigService
-from ..system.key import KeyService
 from ..system.storage import Storage
 from ..system.crypto import CryptoService
 from ...models.disk_usage import DiskUsage, InstallUsage, McpUsage
@@ -23,7 +22,6 @@ class Platform(Service):
         # Add core services that all platforms need
         storage = Storage()
         self.add_service(storage)
-        self.add_service(KeyService())
         self.add_service(ConfigService(storage))
         self.add_service(CryptoService())
 
