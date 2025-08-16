@@ -4,7 +4,12 @@ import shutil
 
 from ..util.version import is_development
 from ..config import get_config, set_platform_type
-from . import PlatformBackend, NativePlatform, PodmanPlatform
+from . import PlatformBackend, NativePlatform
+
+try:
+    from . import PodmanPlatform
+except ImportError:
+    PodmanPlatform = None
 from ..models.config import PLATFORM_TYPES
 
 
@@ -22,7 +27,7 @@ def guess_platform() -> str:
     if is_development():
         return "native"
 
-    if shutil.which("podman"):
+    if PodmanPlatform is not None and shutil.which("podman"):
         return "podman"
 
     if shutil.which("vldmcpd"):
@@ -63,6 +68,8 @@ def get_platform(name: str = "guess") -> PlatformBackend:
     if name == "native":
         return NativePlatform()
     elif name == "podman":
+        if PodmanPlatform is None:
+            raise RuntimeError("Podman platform is not available. Use 'native' platform instead.")
         return PodmanPlatform()
     else:
         raise ValueError(f"Unsupported platform '{name}'. " f"Valid options: {', '.join(sorted(PLATFORM_TYPES))}")

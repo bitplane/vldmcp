@@ -134,8 +134,8 @@ class PlatformBackend(Service):
 
         # Get ports from config
         ports = []
-        if hasattr(config.runtime, "ports"):
-            ports = config.runtime.ports
+        if hasattr(config.platform, "ports"):
+            ports = config.platform.ports
 
         # Get server PID if running
         server_pid = None
@@ -152,6 +152,15 @@ class PlatformBackend(Service):
             server_pid=server_pid,
             ports=ports,
         )
+
+    def deploy_status(self) -> str:
+        """Get deployment status (default implementation).
+
+        Returns:
+            Status string ("running", "stopped", "not running", etc.)
+        """
+        # Default implementation - platforms should override
+        return "unknown"
 
     def uninstall(self, config: bool = False, purge: bool = False) -> list[tuple[str, Path]]:
         """Uninstall the platform environment.

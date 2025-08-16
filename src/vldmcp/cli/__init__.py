@@ -4,7 +4,7 @@ import click
 
 from .. import __version__
 from .lifecycle import server
-from ..runtime import get_runtime
+from ..platform import get_platform
 from ..models.info import InfoResponse, ServerInfo
 from ..util.output import output_nested_dict
 
@@ -24,10 +24,10 @@ cli.add_command(server)
 @cli.command()
 def info():
     """Show system information (client and server status)."""
-    runtime = get_runtime()
+    platform = get_platform()
 
     # Get client info
-    client_info = runtime.info()
+    client_info = platform.info()
 
     # Get server info (currently returns defaults until daemon is implemented)
     server_info = ServerInfo()
