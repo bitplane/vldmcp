@@ -12,10 +12,6 @@ class KeyService(Service):
         super().__init__()
         self._crypto = CryptoService()
 
-    @classmethod
-    def name(cls) -> str:
-        return "keys"
-
     def start(self):
         """Ensure keys exist on start."""
         self.ensure_user_key()

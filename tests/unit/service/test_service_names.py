@@ -56,4 +56,4 @@ def test_service_name_real_codebase_examples():
 
     assert CryptoService.name() == "crypto"
     assert Storage.name() == "storage"
-    assert NativePlatform.name() == "nativeplatform"  # Doesn't inherit from Platform directly
+    assert NativePlatform.name() == "native"  # NativePlatform inherits from Platform

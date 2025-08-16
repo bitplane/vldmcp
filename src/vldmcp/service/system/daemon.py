@@ -7,36 +7,28 @@ from .. import Service
 
 
 class DaemonService(Service):
-    """Service that manages the vldmcp daemon process."""
+    """Service that manages a daemon process."""
 
-    def __init__(self):
+    def __init__(self, command: list[str] | None = None):
         super().__init__()
+        self._command = command or ["vldmcpd"]
         self._process = None
         self._pid = None
 
-    def start(self, debug: bool = False):
-        """Start the daemon process.
-
-        Args:
-            debug: If True, run in foreground for debugging
-        """
+    def start(self):
+        """Start the daemon process."""
         if self._running:
             return
 
         pid_file = self.parent.storage.pid_file_path()
+        pid_file.parent.mkdir(parents=True, exist_ok=True)
 
-        if debug:
-            # Run in foreground for debugging
-            self._process = subprocess.Popen(["vldmcpd"])
-            self._pid = str(self._process.pid)
-        else:
-            # Run as daemon
-            self._process = subprocess.Popen(
-                ["vldmcpd", "--daemon"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
-            )
-            # Read PID from file
-            if pid_file.exists():
-                self._pid = pid_file.read_text().strip()
+        # Run the command
+        self._process = subprocess.Popen(self._command)
+        self._pid = str(self._process.pid)
+
+        # Write PID file
+        pid_file.write_text(str(self._process.pid))
 
         self._running = True
 

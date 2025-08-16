@@ -1,23 +1,21 @@
 """Abstract base class for platform backends."""
 
 import subprocess
-from abc import abstractmethod
 from pathlib import Path
 
 from .. import Service
 from ..system.config import ConfigService
 from ..system.key import KeyService
 from ..system.storage import Storage
-from ..system.daemon import DaemonService
 from ..system.crypto import CryptoService
 from ...models.disk_usage import DiskUsage, InstallUsage, McpUsage
 from ...models.info import ClientInfo
 
 
-class PlatformBackend(Service):
-    """Abstract base class for different platform backends (podman, docker, native, etc).
+class Platform(Service):
+    """Base class for different platforms (podman, native, etc).
 
-    Platforms are Services that manage the vldmcp installation and core services.
+    Platforms manage vldmcp deployment and execution.
     """
 
     def __init__(self):
@@ -27,14 +25,16 @@ class PlatformBackend(Service):
         self.add_service(storage)
         self.add_service(KeyService())
         self.add_service(ConfigService(storage))
-        self.add_service(DaemonService())
         self.add_service(CryptoService())
 
-    def build(self, dockerfile_path: Path) -> bool:
-        """Build the server image/environment.
+    def build(self, force: bool = False) -> bool:
+        """Build the platform environment.
 
-        Default implementation: no build needed.
-        Override in subclasses that need building (e.g., container platforms).
+        Args:
+            force: Force rebuild even if already built
+
+        Returns:
+            True if build succeeded or not needed
         """
         return True
 
@@ -42,11 +42,6 @@ class PlatformBackend(Service):
         """Get platform logs."""
         # Default implementation - platforms can override
         return "No logs available"
-
-    def stream_logs(self, server_id: str) -> None:
-        """Stream server logs to stdout (default implementation prints static logs)."""
-        logs = self.logs(server_id)
-        print(logs)
 
     def du(self) -> DiskUsage:
         """Get disk usage information for this runtime.
@@ -89,7 +84,7 @@ class PlatformBackend(Service):
         )
 
     def deploy(self) -> bool:
-        """Deploy the platform environment (install and build if needed).
+        """Deploy and build the platform environment.
 
         Returns:
             True if deployment succeeded, False otherwise
@@ -109,25 +104,16 @@ class PlatformBackend(Service):
         if config_service:
             config_service.save()
 
-        # Build if needed (subclasses can override)
-        return self.build_if_needed()
+        # Build the platform
+        return self.build()
 
-    def build_if_needed(self) -> bool:
-        """Build if this runtime needs building (default: no build needed).
+    def start(self):
+        """Start the platform services."""
+        super().start()
 
-        Returns:
-            True if build succeeded or not needed, False if build failed
-        """
-        return True  # Default: no build needed
-
-    @abstractmethod
-    def upgrade(self) -> bool:
-        """Upgrade vldmcp to latest version (runtime-specific implementation).
-
-        Returns:
-            True if upgrade succeeded, False otherwise
-        """
-        pass
+    def stop(self):
+        """Stop the platform services."""
+        super().stop()
 
     def info(self) -> ClientInfo:
         """Get client-side information about the runtime.
@@ -135,13 +121,9 @@ class PlatformBackend(Service):
         Returns:
             ClientInfo with current runtime status and configuration
         """
-        config_service = self.get_service("config")
-        config = config_service.get() if config_service else None
-
         # Get ports from config
         ports = []
-        if config:
-            ports = config.platform.ports
+        # TODO: Add ports to platform config model
 
         # Get server PID if running
         server_pid = None
@@ -153,14 +135,14 @@ class PlatformBackend(Service):
                 pass
 
         return ClientInfo(
-            runtime_type=self.__class__.__name__.replace("Backend", "").lower(),
-            server_status=self.deploy_status(),
+            runtime_type=self.__class__.__name__.replace("Platform", "").lower(),
+            server_status=self.status(),
             server_pid=server_pid,
             ports=ports,
         )
 
-    def deploy_status(self) -> str:
-        """Get deployment status (default implementation).
+    def status(self) -> str:
+        """Get platform status.
 
         Returns:
             Status string ("running", "stopped", "not deployed", etc.)
@@ -169,18 +151,6 @@ class PlatformBackend(Service):
         config_dir = self.storage.config_dir()
         if not config_dir.exists():
             return "not deployed"
-
-        # Check if daemon is running
-        pid_file = self.storage.pid_file_path()
-        if pid_file.exists():
-            try:
-                import psutil
-
-                pid = int(pid_file.read_text().strip())
-                if psutil.pid_exists(pid):
-                    return "running"
-            except (ValueError, OSError):
-                pass
 
         return "stopped"
 

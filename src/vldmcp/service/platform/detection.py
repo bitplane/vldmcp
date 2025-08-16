@@ -3,7 +3,7 @@
 import shutil
 
 from ...util.version import is_development
-from . import PlatformBackend, NativePlatform
+from . import Platform, NativePlatform
 
 try:
     from . import PodmanPlatform
@@ -36,14 +36,14 @@ def guess_platform() -> str:
     return "native"
 
 
-def get_platform(name: str = "guess") -> PlatformBackend:
+def get_platform(name: str = "guess") -> Platform:
     """Get a platform backend instance.
 
     Args:
         name: Platform name or "guess" to auto-detect
 
     Returns:
-        PlatformBackend instance
+        Platform instance
 
     Raises:
         ValueError: If platform name is invalid

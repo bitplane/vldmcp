@@ -193,7 +193,7 @@ def start(debug):
     platform = get_platform()
 
     # Check if already running
-    if platform.deploy_status() == "running":
+    if platform.status() == "running":
         click.echo("Server is already running")
         return
 
