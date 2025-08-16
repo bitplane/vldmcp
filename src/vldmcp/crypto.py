@@ -26,6 +26,10 @@ from nacl.signing import SigningKey
 from nacl.encoding import RawEncoder
 
 from . import paths
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .file_service import FileService
 
 
 # -------------------------------
@@ -57,9 +61,14 @@ def load_key(key_path: Path) -> Optional[bytes]:
     return data
 
 
-def ensure_user_key() -> bytes:
+def ensure_user_key(file_service: Optional["FileService"] = None) -> bytes:
     """Ensure the user identity key exists (32 bytes), generating if necessary."""
-    user_key_path = paths.user_key_path()
+    if file_service:
+        user_key_path = file_service.user_key_path()
+    else:
+        # Backward compatibility
+        user_key_path = paths.user_key_path()
+
     key = load_key(user_key_path)
     if key is not None:
         return key
@@ -68,9 +77,14 @@ def ensure_user_key() -> bytes:
     return key
 
 
-def ensure_node_key(node_id: str) -> bytes:
+def ensure_node_key(node_id: str, file_service: Optional["FileService"] = None) -> bytes:
     """Ensure a node key exists (32 bytes), generating if necessary."""
-    node_key_path = paths.node_key_path(node_id)
+    if file_service:
+        node_key_path = file_service.node_key_path(node_id)
+    else:
+        # Backward compatibility
+        node_key_path = paths.node_key_path(node_id)
+
     key = load_key(node_key_path)
     if key is not None:
         return key

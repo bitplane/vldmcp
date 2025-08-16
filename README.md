@@ -6,6 +6,9 @@ share recommendations, share resources and so on.
 
 ## Overall plan
 
+### Everything is a Service
+
+
 ### The CLI
 
 * 🏗️ build identity

@@ -6,7 +6,7 @@ from pathlib import Path
 
 def is_development() -> bool:
     # cheap check, no branching elsewhere
-    return (Path(__file__).resolve().parents[2] / ".git").exists()
+    return (Path(__file__).resolve().parents[3] / ".git").exists()
 
 
 def _git_describe() -> str | None:

@@ -1,8 +1,8 @@
 """File system service for vldmcp."""
 
+import os
 from pathlib import Path
 from .service import Service
-from . import paths
 
 
 class FileService(Service):
@@ -14,8 +14,8 @@ class FileService(Service):
 
     def start(self):
         """Ensure directories exist on start."""
-        paths.create_directories()
-        paths.ensure_secure_permissions()
+        self.create_directories()
+        self.ensure_secure_permissions()
         self._running = True
 
     def stop(self):
@@ -25,48 +25,72 @@ class FileService(Service):
     # Directory accessors
     def data_dir(self) -> Path:
         """Get the data directory path."""
-        return paths.data_dir()
+        xdg_data = os.environ.get("XDG_DATA_HOME")
+        if xdg_data:
+            return Path(xdg_data) / "vldmcp"
+        return Path.home() / ".local" / "share" / "vldmcp"
 
     def config_dir(self) -> Path:
         """Get the config directory path."""
-        return paths.config_dir()
+        xdg_config = os.environ.get("XDG_CONFIG_HOME")
+        if xdg_config:
+            return Path(xdg_config) / "vldmcp"
+        return Path.home() / ".config" / "vldmcp"
 
     def state_dir(self) -> Path:
         """Get the state directory path."""
-        return paths.state_dir()
+        xdg_state = os.environ.get("XDG_STATE_HOME")
+        if xdg_state:
+            return Path(xdg_state) / "vldmcp"
+        return Path.home() / ".local" / "state" / "vldmcp"
 
     def cache_dir(self) -> Path:
         """Get the cache directory path."""
-        return paths.cache_dir()
+        xdg_cache = os.environ.get("XDG_CACHE_HOME")
+        if xdg_cache:
+            return Path(xdg_cache) / "vldmcp"
+        return Path.home() / ".cache" / "vldmcp"
 
     def runtime_dir(self) -> Path:
         """Get the runtime directory path."""
-        return paths.runtime_dir()
+        xdg_runtime = os.environ.get("XDG_RUNTIME_DIR")
+        if xdg_runtime:
+            return Path(xdg_runtime) / "vldmcp"
+        user = os.environ.get("USER", "unknown")
+        return Path(f"/tmp/vldmcp-{user}")
 
     def install_dir(self) -> Path:
         """Get the install directory path."""
-        return paths.install_dir()
+        return self.data_dir() / "install"
 
     def repos_dir(self) -> Path:
         """Get the repositories directory path."""
-        return paths.repos_dir()
+        return self.cache_dir() / "src"
+
+    def build_dir(self) -> Path:
+        """Get the build directory path."""
+        return self.cache_dir() / "build"
 
     def www_dir(self) -> Path:
         """Get the www directory path."""
-        return paths.www_dir()
+        return self.data_dir() / "www"
 
     # File accessors
     def user_key_path(self) -> Path:
         """Get the user key file path."""
-        return paths.user_key_path()
+        return self.data_dir() / "keys" / "user.key"
+
+    def node_dir(self, node_id: str) -> Path:
+        """Get the directory for a specific node's data."""
+        return self.state_dir() / "nodes" / node_id
 
     def node_key_path(self, node_id: str) -> Path:
         """Get a node key file path."""
-        return paths.node_key_path(node_id)
+        return self.node_dir(node_id) / "key"
 
     def pid_file_path(self) -> Path:
         """Get the PID file path."""
-        return paths.pid_file_path()
+        return self.runtime_dir() / "vldmcp.pid"
 
     # File operations (with permission checks in the future)
     def read_file(self, path: Path, context=None) -> bytes:
@@ -139,9 +163,62 @@ class FileService(Service):
 
     # Directory management
     def create_directories(self) -> None:
-        """Create all required directories."""
-        paths.create_directories()
+        """Create all required directories with appropriate permissions."""
+        # Create config directory
+        self.config_dir().mkdir(parents=True, exist_ok=True)
+
+        # Create data directory and keys subdirectory with secure permissions
+        keys_dir = self.data_dir() / "keys"
+        keys_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
+
+        # Create state directory with secure permissions
+        self.state_dir().mkdir(parents=True, exist_ok=True, mode=0o700)
+
+        # Create cache directories
+        self.cache_dir().mkdir(parents=True, exist_ok=True)
+        self.repos_dir().mkdir(parents=True, exist_ok=True)
+        self.build_dir().mkdir(parents=True, exist_ok=True)
+
+        # Create install directory
+        self.install_dir().mkdir(parents=True, exist_ok=True)
+
+        # Create www directory and subdirectories
+        www = self.www_dir()
+        www.mkdir(parents=True, exist_ok=True)
+        (www / "models").mkdir(exist_ok=True)
+        (www / "assets").mkdir(exist_ok=True)
+        (www / "uploads").mkdir(exist_ok=True)
+        (www / "generated").mkdir(exist_ok=True)
+
+        # Create runtime directory with secure permissions
+        self.runtime_dir().mkdir(parents=True, exist_ok=True, mode=0o700)
 
     def ensure_secure_permissions(self) -> None:
-        """Ensure secure permissions on sensitive directories."""
-        paths.ensure_secure_permissions()
+        """Ensure all sensitive directories and files have correct permissions."""
+        # Secure the keys directory
+        keys_dir = self.data_dir() / "keys"
+        if keys_dir.exists():
+            keys_dir.chmod(0o700)
+
+            # Secure the user key file if it exists
+            user_key = self.user_key_path()
+            if user_key.exists():
+                user_key.chmod(0o600)
+
+        # Secure the state directory
+        if self.state_dir().exists():
+            self.state_dir().chmod(0o700)
+
+            # Secure all node directories and key files
+            nodes_dir = self.state_dir() / "nodes"
+            if nodes_dir.exists():
+                for node_path in nodes_dir.iterdir():
+                    if node_path.is_dir():
+                        node_path.chmod(0o700)
+                        key_file = node_path / "key"
+                        if key_file.exists():
+                            key_file.chmod(0o600)
+
+        # Secure the runtime directory
+        if self.runtime_dir().exists():
+            self.runtime_dir().chmod(0o700)
