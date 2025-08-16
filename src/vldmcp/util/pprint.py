@@ -137,7 +137,7 @@ def pubkey_to_onion(pubkey: bytes) -> str:
 
     # Encode: pubkey + checksum + version (0x03)
     address_bytes = pubkey + checksum + b"\x03"
-    address = base32hex.b32encode(address_bytes).decode().lower().rstrip("=")
+    address = base32hex.b32encode(address_bytes).lower().rstrip("=")
 
     return f"{address}.onion"
 

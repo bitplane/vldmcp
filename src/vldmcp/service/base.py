@@ -100,10 +100,12 @@ class Service:
         """Merge two services into a MergedService."""
         if isinstance(other, MergedService):
             # If other is already merged, extend it
-            services = [self] + other.services
+            other_services = [svc for key, svc in other.children.items() if key.startswith("_merged_")]
+            services = [self] + other_services
         elif isinstance(self, MergedService):
             # If self is merged, extend it
-            services = self.services + [other]
+            self_services = [svc for key, svc in self.children.items() if key.startswith("_merged_")]
+            services = self_services + [other]
         else:
             # Both are regular services
             services = [self, other]
