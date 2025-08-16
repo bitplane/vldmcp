@@ -31,17 +31,17 @@ from .storage import Storage
 class CryptoService(Service):
     """Service that manages cryptographic operations."""
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, parent=None):
+        super().__init__(parent)
         self._mnemonic = Mnemonic("english")
 
     def start(self):
         """Initialize crypto service."""
-        self._running = True
+        super().start()
 
     def stop(self):
         """Stop crypto service."""
-        self._running = False
+        super().stop()
 
     def generate_key(self) -> bytes:
         """Generate a new 32-byte key.

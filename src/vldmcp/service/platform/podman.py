@@ -15,13 +15,9 @@ class PodmanPlatform(Platform):
 
     def _get_podman_config(self):
         """Get podman-specific configuration values."""
-        config_service = self.get_service("config")
-        if config_service:
-            config = config_service.get_config()
-            plat = config.platform
-            return plat.image_name, plat.container_name
-        # Fallback to defaults if config doesn't have podman-specific fields
-        return "vldmcp:latest", "vldmcp-server"
+        config = self.config.get_config()
+        plat = config.platform
+        return plat.image_name, plat.container_name
 
     def build(self, force: bool = False) -> bool:
         """Build container with podman."""

@@ -8,8 +8,8 @@ from ...models.config import Config
 class ConfigService(Service):
     """Service that manages vldmcp configuration."""
 
-    def __init__(self, storage):
-        super().__init__()
+    def __init__(self, storage, parent=None):
+        super().__init__(parent)
         self.data = PersistentDict(storage, "config.toml")
 
     def get_config(self) -> Config:

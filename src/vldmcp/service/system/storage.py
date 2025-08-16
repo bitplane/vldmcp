@@ -8,15 +8,18 @@ from .. import Service
 class Storage(Service):
     """Service that manages file system access with permission control."""
 
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
     def start(self):
         """Ensure directories exist on start."""
+        super().start()
         self.create_directories()
         self.ensure_secure_permissions()
-        self._running = True
 
     def stop(self):
         """Nothing to do on stop."""
-        self._running = False
+        super().stop()
 
     # Directory accessors
     def data_dir(self) -> Path:

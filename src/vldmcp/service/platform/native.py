@@ -7,9 +7,9 @@ from ..system.daemon import DaemonService
 class NativePlatform(Platform):
     """Native process platform backend (no container)."""
 
-    def __init__(self):
-        super().__init__()
-        self.add_service(DaemonService())
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        DaemonService(["vldmcpd"], self)
 
     def build(self, force: bool = False) -> bool:
         """No build needed for native."""
@@ -20,5 +20,4 @@ class NativePlatform(Platform):
         if not self.storage.config_dir().exists():
             return "not deployed"
 
-        daemon = self.get_service("daemon")
-        return daemon.status() if daemon else "stopped"
+        return self.daemon.status()

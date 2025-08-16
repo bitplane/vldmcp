@@ -1,52 +1,61 @@
 """Service base class for the capability-based architecture."""
 
-from abc import ABC
+import asyncio
 
 
-class Service(ABC):
+class Service:
     """Base class for services. Services can also host other services (recursive composition)."""
 
     version = "0.0.1"
 
-    def __init__(self):
-        self.parent = None  # Immediate parent service
-        self.root = None  # Top-level service in the hierarchy
+    def __init__(self, parent=None):
+        self.parent = parent
         self._running = False
-        self.services = {}  # Child services this service hosts
+        self.children = {}  # Child services this service hosts
+
+        # Auto-register with parent if provided
+        if parent:
+            parent.children[self.name()] = self
 
     @classmethod
     def name(cls) -> str:
         """Get the service name (derived from class name)."""
         name = cls.__name__
         # Remove parent class name suffix if present
-        if len(cls.__bases__) > 0:
-            parent_name = cls.__bases__[0].__name__
-            if name.endswith(parent_name) and name != parent_name:
-                name = name[: -len(parent_name)]
+        parent_name = cls.__bases__[0].__name__
+        if name.endswith(parent_name) and name != parent_name:
+            name = name[: -len(parent_name)]
         return name.lower()
+
+    def __getattr__(self, name):
+        """Forward attribute access to children if not found."""
+        if name in self.children:
+            return self.children[name]
+        raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
 
     # Service lifecycle
     def start(self):
         """Start this service and all its children."""
         self._running = True
         # Start all child services
-        for service in self.services.values():
+        for service in self.children.values():
             service.start()
 
     def stop(self):
         """Stop this service and all its children."""
         # Stop all child services first
-        for service in self.services.values():
+        for service in self.children.values():
             service.stop()
         self._running = False
 
     async def run(self):
-        """Main run loop for this service. Override for custom behavior."""
-        # Default: just keep running while status is running
-        import asyncio
-
-        while self._running:
-            await asyncio.sleep(1.0)
+        """Run this service and all children concurrently."""
+        if self.children:
+            await asyncio.gather(*[child.run() for child in self.children.values()])
+        else:
+            # Default: just keep running while status is running
+            while self._running:
+                await asyncio.sleep(1.0)
 
     def status(self) -> str:
         """Get the status of this service."""
@@ -69,69 +78,9 @@ class Service(ABC):
         """
         return []
 
-    # Hosting capabilities - services can host other services
-    def add_service(self, service):
-        """Add a child service to this service."""
-
-        name = service.name()
-
-        # Check if name already exists in services
-        if name in self.services:
-            raise ValueError(f"Service '{name}' already registered")
-
-        # Check if attribute already exists and isn't a service
-        if isinstance(self.name, Service):
-            existing = getattr(self, name)
-            raise ValueError(f"{self.name()} already has {name} of type {type(existing)}")
-
-        self.services[name] = service
-        # Also add to __dict__ for attribute access
-        setattr(self, name, service)
-        service.parent = self
-        service.root = self.root if self.root else self
-
-    def remove_service(self, name: str):
-        """Remove a child service from this service."""
-        if name in self.services:
-            service = self.services.pop(name)
-            # Also remove from __dict__
-            delattr(self, name)
-            service.parent = None
-            service.root = None
-
-    def get_service(self, name: str):
-        """Get a child service by name."""
-        return self.services.get(name)
-
-    def start_service(self, name: str):
-        """Start a specific child service."""
-        service = self.get_service(name)
-        if service:
-            service.start()
-
-    def stop_service(self, name: str):
-        """Stop a specific child service."""
-        service = self.get_service(name)
-        if service:
-            service.stop()
-
     def get_all_statuses(self) -> dict[str, str]:
         """Get status of all child services."""
         statuses = {}
-        for name, service in self.services.items():
+        for name, service in self.children.items():
             statuses[name] = service.status()
         return statuses
-
-    def call_service(self, target_service: str, method: str, request: dict) -> dict:
-        """Call another service (either child or ask host to route)."""
-        # First try children
-        service = self.get_service(target_service)
-        if service:
-            # TODO: Implement method dispatch
-            raise NotImplementedError("Method dispatch not yet implemented")
-
-        # Ask parent to route
-        if self.parent:
-            return self.parent.call_service(target_service, method, request)
-
-        raise RuntimeError(f"Service '{target_service}' not found")

@@ -38,7 +38,7 @@ def deploy(platform, recover, show_seed):
     # Handle seed phrase recovery or generation
     platform_instance = get_platform(platform)
     user_key_path = platform_instance.storage.user_key_path()
-    crypto_service = platform_instance.get_service("crypto")
+    crypto_service = platform_instance.crypto
 
     if recover:
         # Recovery mode - prompt for seed phrase
@@ -225,7 +225,7 @@ def export_seed():
     """Export the seed phrase for your identity."""
     platform = get_platform()
     user_key_path = platform.storage.user_key_path()
-    crypto_service = platform.get_service("crypto")
+    crypto_service = platform.crypto
 
     if not user_key_path.exists():
         click.echo("❌ No identity found. Run 'vldmcp server deploy' first.")

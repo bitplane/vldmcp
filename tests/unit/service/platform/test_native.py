@@ -8,10 +8,10 @@ def test_native_platform_creates_core_services(xdg_dirs):
     platform = NativePlatform()
 
     # Check that core services are registered
-    assert platform.get_service("storage") is not None
-    assert platform.get_service("config") is not None
-    assert platform.get_service("crypto") is not None
-    assert platform.get_service("daemon") is not None
+    assert platform.storage is not None
+    assert platform.config is not None
+    assert platform.crypto is not None
+    assert platform.daemon is not None
 
 
 def test_native_deploy_creates_directories(xdg_dirs):

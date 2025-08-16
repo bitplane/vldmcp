@@ -9,16 +9,15 @@ from .. import Service
 class DaemonService(Service):
     """Service that manages a daemon process."""
 
-    def __init__(self, command: list[str] | None = None):
-        super().__init__()
-        self._command = command or ["vldmcpd"]
+    def __init__(self, command: list[str], parent=None):
+        super().__init__(parent)
+        self._command = command
         self._process = None
         self._pid = None
 
     def start(self):
         """Start the daemon process."""
-        if self._running:
-            return
+        super().start()
 
         pid_file = self.parent.storage.pid_file_path()
         pid_file.parent.mkdir(parents=True, exist_ok=True)
@@ -30,13 +29,8 @@ class DaemonService(Service):
         # Write PID file
         pid_file.write_text(str(self._process.pid))
 
-        self._running = True
-
     def stop(self):
         """Stop the daemon process."""
-        if not self._running:
-            return
-
         if self._process:
             # Direct process reference
             self._process.terminate()
@@ -53,7 +47,8 @@ class DaemonService(Service):
 
         self._process = None
         self._pid = None
-        self._running = False
+
+        super().stop()
 
     def status(self) -> str:
         """Get daemon status."""

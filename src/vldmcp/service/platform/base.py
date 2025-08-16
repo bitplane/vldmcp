@@ -17,13 +17,12 @@ class Platform(Service):
     Platforms manage vldmcp deployment and execution.
     """
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, parent=None):
+        super().__init__(parent)
         # Add core services that all platforms need
-        storage = Storage()
-        self.add_service(storage)
-        self.add_service(ConfigService(storage))
-        self.add_service(CryptoService())
+        storage = Storage(self)
+        ConfigService(storage, self)
+        CryptoService(self)
 
     def build(self, force: bool = False) -> bool:
         """Build the platform environment.
@@ -91,17 +90,14 @@ class Platform(Service):
         self.storage.create_directories()
 
         # Ensure user identity key exists
-        crypto_service = self.get_service("crypto")
-        crypto_service.ensure_user_key(self.storage)
+        self.crypto.ensure_user_key(self.storage)
 
         # Ensure secure permissions
         self.storage.ensure_secure_permissions()
 
         # Save config to establish deployment
-        config_service = self.get_service("config")
-        if config_service:
-            config = config_service.get_config()
-            config_service.save_config(config)
+        config = self.config.get_config()
+        self.config.save_config(config)
 
         # Build the platform
         return self.build()
