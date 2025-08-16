@@ -24,9 +24,10 @@ class PlatformBackend(Service):
     def __init__(self):
         super().__init__()
         # Add core services that all platforms need
-        self.add_service(Storage())
+        storage = Storage()
+        self.add_service(storage)
         self.add_service(KeyService())
-        self.add_service(ConfigService())
+        self.add_service(ConfigService(storage))
         self.add_service(DaemonService())
         self.add_service(CryptoService())
 
