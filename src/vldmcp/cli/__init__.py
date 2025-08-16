@@ -4,7 +4,7 @@ import click
 
 from .. import __version__
 from .lifecycle import server
-from ..platform import get_platform
+from ..service.platform import get_platform
 from ..models.info import InfoResponse, ServerInfo
 from ..util.output import output_nested_dict
 

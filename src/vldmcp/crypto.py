@@ -19,16 +19,13 @@ from __future__ import annotations
 
 import secrets
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Tuple
 
 from mnemonic import Mnemonic
 from nacl.signing import SigningKey
 from nacl.encoding import RawEncoder
 
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from .storage import Storage
+from .service.system.storage import Storage
 
 
 # -------------------------------
@@ -50,7 +47,7 @@ def save_key(key: bytes, key_path: Path) -> None:
     key_path.chmod(0o600)
 
 
-def load_key(key_path: Path) -> Optional[bytes]:
+def load_key(key_path: Path) -> bytes | None:
     """Load a key from a file if it exists."""
     if not key_path.exists():
         return None
@@ -60,12 +57,12 @@ def load_key(key_path: Path) -> Optional[bytes]:
     return data
 
 
-def ensure_user_key(file_service: Optional["Storage"] = None) -> bytes:
+def ensure_user_key(file_service: Storage | None = None) -> bytes:
     """Ensure the user identity key exists (32 bytes), generating if necessary."""
     if file_service:
         user_key_path = file_service.user_key_path()
     else:
-        raise ValueError("FileService is required")
+        raise ValueError("StorageService is required")
 
     key = load_key(user_key_path)
     if key is not None:
@@ -75,12 +72,12 @@ def ensure_user_key(file_service: Optional["Storage"] = None) -> bytes:
     return key
 
 
-def ensure_node_key(node_id: str, file_service: Optional["Storage"] = None) -> bytes:
+def ensure_node_key(node_id: str, file_service: Storage | None = None) -> bytes:
     """Ensure a node key exists (32 bytes), generating if necessary."""
     if file_service:
         node_key_path = file_service.node_key_path(node_id)
     else:
-        raise ValueError("FileService is required")
+        raise ValueError("StorageService is required")
 
     key = load_key(node_key_path)
     if key is not None:

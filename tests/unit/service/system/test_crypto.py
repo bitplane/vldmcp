@@ -37,41 +37,41 @@ def test_load_nonexistent_key(tmp_path):
     assert crypto.load_key(key_path) is None
 
 
-def test_ensure_user_key(file_service):
+def test_ensure_user_key(storage_service):
     """Test ensure_user_key creates key if it doesn't exist."""
     # First call should generate key
-    key1 = crypto.ensure_user_key(file_service)
+    key1 = crypto.ensure_user_key(storage_service)
     assert isinstance(key1, bytes)
     assert len(key1) == 32
 
     # Second call should return same key
-    key2 = crypto.ensure_user_key(file_service)
+    key2 = crypto.ensure_user_key(storage_service)
     assert key1 == key2
 
     # Check file was created with correct permissions
-    key_path = file_service.user_key_path()
+    key_path = storage_service.user_key_path()
     assert key_path.exists()
     assert oct(key_path.stat().st_mode)[-3:] == "600"
     assert oct(key_path.parent.stat().st_mode)[-3:] == "700"
 
 
-def test_ensure_node_key(file_service):
+def test_ensure_node_key(storage_service):
     """Test ensure_node_key creates key if it doesn't exist."""
     # First call should generate key
-    key1 = crypto.ensure_node_key("node123", file_service)
+    key1 = crypto.ensure_node_key("node123", storage_service)
     assert isinstance(key1, bytes)
     assert len(key1) == 32
 
     # Second call should return same key
-    key2 = crypto.ensure_node_key("node123", file_service)
+    key2 = crypto.ensure_node_key("node123", storage_service)
     assert key1 == key2
 
     # Different node should get different key
-    key3 = crypto.ensure_node_key("node456", file_service)
+    key3 = crypto.ensure_node_key("node456", storage_service)
     assert key3 != key1
 
     # Check files were created with correct permissions
-    key_path = file_service.node_key_path("node123")
+    key_path = storage_service.node_key_path("node123")
     assert key_path.exists()
     assert oct(key_path.stat().st_mode)[-3:] == "600"
     assert oct(key_path.parent.stat().st_mode)[-3:] == "700"

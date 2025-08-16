@@ -6,9 +6,9 @@ import subprocess
 from pathlib import Path
 from typing import Optional
 
-from .. import __version__
-from ..config import get_config
-from ..models.disk_usage import DiskUsage
+from ... import __version__
+from ..system.config import get_config
+from ...models.disk_usage import DiskUsage
 from .base import PlatformBackend
 
 
@@ -168,7 +168,7 @@ class PodmanPlatform(PlatformBackend):
 
     def build_if_needed(self) -> bool:
         """Build container image if needed."""
-        base_dir = self.files.install_dir() / "base"
+        base_dir = self.storage.install_dir() / "base"
         if not base_dir.exists():
             return False
 
@@ -185,7 +185,7 @@ class PodmanPlatform(PlatformBackend):
             return False
 
         # Set up install directory for container assets
-        install_dir = self.files.install_dir()
+        install_dir = self.storage.install_dir()
         base_dir = install_dir / "base"
         base_dir.mkdir(parents=True, exist_ok=True)
 
@@ -225,7 +225,7 @@ class PodmanPlatform(PlatformBackend):
             return None
 
         # Check if already running
-        pid_file = self.files.pid_file_path()
+        pid_file = self.storage.pid_file_path()
         if pid_file.exists():
             try:
                 pid_content = pid_file.read_text().strip()
@@ -244,11 +244,11 @@ class PodmanPlatform(PlatformBackend):
 
         # Create mount mappings
         mounts = {
-            str(self.files.state_dir()): "/var/lib/vldmcp:rw",
-            str(self.files.cache_dir()): "/var/cache/vldmcp:rw",
-            str(self.files.config_dir()): "/etc/vldmcp:ro",
-            str(self.files.runtime_dir()): "/run/vldmcp:rw",
-            str(self.files.www_dir()): "/var/lib/vldmcp/www:rw",
+            str(self.storage.state_dir()): "/var/lib/vldmcp:rw",
+            str(self.storage.cache_dir()): "/var/cache/vldmcp:rw",
+            str(self.storage.config_dir()): "/etc/vldmcp:ro",
+            str(self.storage.runtime_dir()): "/run/vldmcp:rw",
+            str(self.storage.www_dir()): "/var/lib/vldmcp/www:rw",
         }
 
         # Get ports from config
@@ -267,7 +267,7 @@ class PodmanPlatform(PlatformBackend):
 
     def deploy_stop(self) -> bool:
         """Stop container server."""
-        pid_file = self.files.pid_file_path()
+        pid_file = self.storage.pid_file_path()
 
         if not pid_file.exists():
             return False
@@ -283,7 +283,7 @@ class PodmanPlatform(PlatformBackend):
 
     def deploy_status(self) -> str:
         """Get container server status."""
-        pid_file = self.files.pid_file_path()
+        pid_file = self.storage.pid_file_path()
 
         if not pid_file.exists():
             return "not running"

@@ -1,8 +1,8 @@
 """Tests for version utilities."""
 
 from vldmcp.util.version import is_development, get_version
-from vldmcp.platform.detection import get_platform, guess_platform
-from vldmcp.platform.native import NativePlatform
+from vldmcp.service.platform.detection import get_platform, guess_platform
+from vldmcp.service.platform.native import NativePlatform
 
 
 def test_is_development():

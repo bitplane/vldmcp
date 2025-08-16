@@ -4,15 +4,16 @@ import subprocess
 from abc import abstractmethod
 from pathlib import Path
 
-from ..config import get_config
-from ..service import Service
-from ..installer import InstallerService
-from ..config import ConfigService
-from ..key_service import KeyService
-from ..file_service import FileService
-from ..daemon import DaemonService
-from ..models.disk_usage import DiskUsage, InstallUsage, McpUsage
-from ..models.info import ClientInfo
+from ..system.config import get_config
+from .. import Service
+from ..system.installer import InstallerService
+from ..system.config import ConfigService
+from ..system.key import KeyService
+from ..system.storage import Storage
+from ..system.daemon import DaemonService
+from ..system.crypto import CryptoService
+from ...models.disk_usage import DiskUsage, InstallUsage, McpUsage
+from ...models.info import ClientInfo
 
 
 class PlatformBackend(Service):
@@ -24,16 +25,20 @@ class PlatformBackend(Service):
     def __init__(self):
         super().__init__()
         # Add core services that all platforms need
-        self.add_service(FileService())
+        self.add_service(Storage())
         self.add_service(KeyService())
         self.add_service(ConfigService())
         self.add_service(InstallerService())
         self.add_service(DaemonService())
+        self.add_service(CryptoService())
 
-    @abstractmethod
     def build(self, dockerfile_path: Path) -> bool:
-        """Build the server image/environment."""
-        pass
+        """Build the server image/environment.
+
+        Default implementation: no build needed.
+        Override in subclasses that need building (e.g., container platforms).
+        """
+        return True
 
     def logs(self) -> str:
         """Get platform logs."""
@@ -63,20 +68,20 @@ class PlatformBackend(Service):
                 return 0
 
         # Calculate base sizes
-        config_size = get_dir_size(self.files.config_dir()) + get_dir_size(self.files.runtime_dir())
+        config_size = get_dir_size(self.storage.config_dir()) + get_dir_size(self.storage.runtime_dir())
 
         # Install breakdown
-        install_dir = self.files.install_dir()
+        install_dir = self.storage.install_dir()
         install_image_size = get_dir_size(install_dir / "base") if install_dir.exists() else 0
-        install_data_size = get_dir_size(self.files.data_dir()) + get_dir_size(self.files.state_dir())
+        install_data_size = get_dir_size(self.storage.data_dir()) + get_dir_size(self.storage.state_dir())
 
         # MCP breakdown
-        repos_size = get_dir_size(self.files.repos_dir())
+        repos_size = get_dir_size(self.storage.repos_dir())
         mcp_images_size = 0  # Container backends will override this
-        mcp_data_size = get_dir_size(self.files.cache_dir())
+        mcp_data_size = get_dir_size(self.storage.cache_dir())
 
         # WWW data
-        www_size = get_dir_size(self.files.www_dir())
+        www_size = get_dir_size(self.storage.www_dir())
 
         return DiskUsage(
             config=config_size,
@@ -139,7 +144,7 @@ class PlatformBackend(Service):
 
         # Get server PID if running
         server_pid = None
-        pid_file = self.files.pid_file_path()
+        pid_file = self.storage.pid_file_path()
         if pid_file.exists():
             try:
                 server_pid = pid_file.read_text().strip()

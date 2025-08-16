@@ -20,8 +20,8 @@ def xdg_dirs(tmp_path, monkeypatch):
 
 
 @pytest.fixture
-def file_service(xdg_dirs):
-    """Get a FileService instance with temporary directories."""
+def storage_service(xdg_dirs):
+    """Get a StorageService instance with temporary directories."""
     service = Storage()
     service.start()
     return service

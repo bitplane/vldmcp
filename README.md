@@ -8,12 +8,48 @@ share recommendations, share resources and so on.
 
 ### Everything is a Service
 
+It's all a bunch of nested services that can be accessed like a filesystem.
+MCP services don't get IO by default, they have to call the (their or a)
+StorageService, same with networking. MCP services are stdio/stdio
+
+Calling a method on a service is done by having an identity with the right
+permissions. All of vldmcp's internals are also services, so anyone or thing
+can introspect it and call methods if they have permissions.
+
+Method dispatch works by embedding the signature of the call and its return
+type in a Pydantic object model, and proxied via location in the API directory.
+
+Each/path/segment in this example is a different node in a tree of services:
+
+        /api/github.com:bitplane/host1/mcp/mvp-mcp:1.0.0+abcdef1/knickers-off
+          |     |        |         |    |      |     |      |       |
+          v     |        |         |    |      |     |      |       v
+    api root    v        |         |    |      |     |      v    what it does
+           id provider   v         |    |      |     |  commit hash
+                my username        v    |      v  version no
+                    memorable box name  v  the service
+                                mcp services
+
+Because it's using FastAPI and Pydantic, you can get a swagger interface at
+the /doc/ endpoint, but I wouldn't recommend it. That's why the Textual and
+Textual web interfaces (will) exist.
+
+When sharing links, you'll need to connect to GitHub/GitLab/Radicle if you want
+a short URL like that one.
+
+
+
+
+### Permissions
+
+Permissions
+
 
 ### The CLI
 
-* 🏗️ build identity
-* ⏯️ Start/stop the server + web UI
-* ⏩ Delegate all calls to the HTTP API
+~~* 🏗️ build identity~~
+~~* ⏯️ Start/stop the server + web UI~~
+~~* ⏩ Delegate all calls to the HTTP API~~
 * 🔡 and/or run the textual UI
 
 ### HTTP REST API
@@ -23,7 +59,7 @@ share recommendations, share resources and so on.
   * 🗝️  identity management / linking accounts + keys
   * 🤖 CRUD API for peers + groups + permissions
 * 🖥 Server
-  * 🏗️  Container build/update
+  ~~* 🏗️  Container build/updae~~
   * ⨇ Merge
 * ▶ Service
   * 🔁 syncing known services and service repos with peers
@@ -38,39 +74,39 @@ As services are added, they are added to the API like:
 ### Veilid
 
 Services connect P2P. FoaF connections are ephemeral and done through an
-introduction handshake. Veilid -> HTTP for most things.
+introduction handshake.
 
 ### TUI / website
 
 Simple TUI in Textual, served over Textual Web. Clicking stuff in the UI just
 makes web service calls.
 
-### Service manifest
+### MCP Services
 
-Services are just git repos that we clone from (can we add a transport plugin
-to git?), build in podman and spin them up. Their port gets added to the router.
+MCP services are generated from git repos that we clone from, build in Docker
+or Podman, get them to dump an API spec and then spin them up.
 
-Code ownership is verified via commit sigs. Veilid added to as a way to sign
-code.
+Code ownership is verified via commit sigs, with Veilid added to as a way to
+sign code.
 
-Manifest file in the root of the repo (JSON?) adds permissions which must be
-verified. For example "r/w this path in the container" or "read this path on the
-host machine", "access the GPU" etc.
+Manifest file in the root of the repo (toml) adds permissions which must be
+verified before installing. For example "r/w this path in the container" or
+"read this path on the host machine", "access the GPU", "call this specific
+service pattern" and so on.
 
-Stats measured for quota.
+##
+
 
 ## Directory Structure
 
-vldmcp follows the XDG Base Directory Specification for organizing its files:
+XDG dirs apply:
 
-### User Identity Key (Never in containers)
-- **Path**: `$XDG_DATA_HOME/vldmcp/keys/user.key` (default: `~/.local/share/vldmcp/keys/user.key`)
-- **Permissions**: dir `0700`, file `0600`
+### User Identity Key
+- **Path**: `$XDG_DATA_HOME/vldmcp/keys/user.key` (`~/.local/share/vldmcp/keys/user.key`)
 - **Description**: Your cryptographic identity key - never expose this to containers or services
 
 ### Node Instance Keys
 - **Path**: `$XDG_STATE_HOME/vldmcp/nodes/<node-id>/` (default: `~/.local/state/vldmcp/nodes/<node-id>/`)
-- **Permissions**: dir `0700`, key file `0600`
 - **Description**: Per-node instance keys for server authentication
 
 ### Configuration
@@ -81,11 +117,12 @@ vldmcp follows the XDG Base Directory Specification for organizing its files:
 ### Cache (Can be safely deleted)
 - **Path**: `$XDG_CACHE_HOME/vldmcp/` (default: `~/.cache/vldmcp/`)
 - **Contents**: Downloaded git repositories (`src/`), build artifacts (`build/`)
-- **Description**: Temporary data that can be regenerated
+- **Description**: Temporary data that can be downloaded again.
 
 ### Application Data
 - **Path**: `$XDG_DATA_HOME/vldmcp/install/` (default: `~/.local/share/vldmcp/install/`)
-- **Description**: Container Dockerfiles, base images, templates
+- **Description**: Container Dockerfiles, base images, templates; stuff we need
+  to be able to run the thing.
 
 ### Runtime Data
 - **Path**: `$XDG_RUNTIME_DIR/vldmcp/` (default: `/tmp/vldmcp-$USER/`)
@@ -102,5 +139,3 @@ When running in container mode, the following directories are mounted:
 -v $XDG_CONFIG_HOME/vldmcp:/etc/vldmcp:ro         # Config (read-only)
 -v $XDG_RUNTIME_DIR/vldmcp:/run/vldmcp:rw         # Runtime
 ```
-
-**Note**: The user identity key is never mounted into containers for security reasons.

@@ -2,15 +2,15 @@
 
 import shutil
 
-from ..util.version import is_development
-from ..config import get_config, set_platform_type
+from ...util.version import is_development
+from ..system.config import get_config, set_platform_type
 from . import PlatformBackend, NativePlatform
 
 try:
     from . import PodmanPlatform
 except ImportError:
     PodmanPlatform = None
-from ..models.config import PLATFORM_TYPES
+from ...models.config import PLATFORM_TYPES
 
 
 def guess_platform() -> str:

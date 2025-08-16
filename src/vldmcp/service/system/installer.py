@@ -1,8 +1,8 @@
 """Installer service for vldmcp."""
 
 from pathlib import Path
-from .service import Service
-from . import crypto
+from .. import Service
+from ... import crypto
 
 
 class InstallerService(Service):
@@ -27,13 +27,13 @@ class InstallerService(Service):
             True if installation succeeded, False otherwise
         """
         # Create all XDG directories with proper permissions
-        self.parent.files.create_directories()
+        self.parent.storage.create_directories()
 
         # Ensure user identity key exists
-        crypto.ensure_user_key(self.parent.files)
+        crypto.ensure_user_key(self.parent.storage)
 
         # Ensure secure permissions
-        self.parent.files.ensure_secure_permissions()
+        self.parent.storage.ensure_secure_permissions()
 
         return True
 
@@ -52,36 +52,36 @@ class InstallerService(Service):
         dirs_removed = []
 
         # Always remove install and cache
-        install_dir = self.parent.files.install_dir()
+        install_dir = self.parent.storage.install_dir()
         if install_dir.exists():
             shutil.rmtree(install_dir)
             dirs_removed.append(("install data", install_dir))
 
-        cache_dir = self.parent.files.cache_dir()
+        cache_dir = self.parent.storage.cache_dir()
         if cache_dir.exists():
             shutil.rmtree(cache_dir)
             dirs_removed.append(("cache", cache_dir))
 
         # Config flag: also remove config and state
         if config or purge:
-            config_dir = self.parent.files.config_dir()
+            config_dir = self.parent.storage.config_dir()
             if config_dir.exists():
                 shutil.rmtree(config_dir)
                 dirs_removed.append(("configuration", config_dir))
 
-            state_dir = self.parent.files.state_dir()
+            state_dir = self.parent.storage.state_dir()
             if state_dir.exists():
                 shutil.rmtree(state_dir)
                 dirs_removed.append(("state data", state_dir))
 
-            runtime_dir = self.parent.files.runtime_dir()
+            runtime_dir = self.parent.storage.runtime_dir()
             if runtime_dir.exists():
                 shutil.rmtree(runtime_dir)
                 dirs_removed.append(("runtime data", runtime_dir))
 
         # Purge flag: also remove user data (including keys)
         if purge:
-            data_dir = self.parent.files.data_dir()
+            data_dir = self.parent.storage.data_dir()
             if data_dir.exists():
                 shutil.rmtree(data_dir)
                 dirs_removed.append(("user data", data_dir))

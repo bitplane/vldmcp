@@ -3,7 +3,7 @@
 import subprocess
 import signal
 import os
-from ..service import Service
+from .. import Service
 
 
 class DaemonService(Service):
@@ -27,7 +27,7 @@ class DaemonService(Service):
         if self._running:
             return
 
-        pid_file = self.parent.files.pid_file_path()
+        pid_file = self.parent.storage.pid_file_path()
 
         if debug:
             # Run in foreground for debugging

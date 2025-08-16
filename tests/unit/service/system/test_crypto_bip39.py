@@ -187,12 +187,12 @@ def test_generate_node_id():
     assert id1 != id2  # Should be random
 
 
-def test_integration_full_identity_lifecycle(file_service):
+def test_integration_full_identity_lifecycle(storage_service):
     """Test the full identity lifecycle: create, export, recover."""
 
     # 1. Generate new identity
     mnemonic1, key1 = crypto.generate_mnemonic_and_key()
-    user_key_path = file_service.user_key_path()
+    user_key_path = storage_service.user_key_path()
     crypto.save_key(key1, user_key_path)
 
     # 2. Export seed phrase

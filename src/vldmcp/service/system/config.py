@@ -5,7 +5,7 @@ import tomllib
 import tomli_w
 from pathlib import Path
 
-from ...service import Service
+from .. import Service
 from ...models.config import Config, PlatformConfig, NativeConfig, PodmanConfig
 
 
@@ -18,9 +18,9 @@ class ConfigService(Service):
 
     @property
     def _config_path(self) -> Path:
-        """Get config file path from FileService if available, otherwise use XDG."""
-        if self.parent and hasattr(self.parent, "files"):
-            return self.parent.files.config_dir() / "config.toml"
+        """Get config file path from StorageService if available, otherwise use XDG."""
+        if self.parent and hasattr(self.parent, "storage"):
+            return self.parent.storage.config_dir() / "config.toml"
         # Fallback to XDG paths for standalone usage
         xdg_config = os.environ.get("XDG_CONFIG_HOME")
         if xdg_config:

@@ -2,7 +2,7 @@
 
 import os
 from pathlib import Path
-from .service import Service
+from .. import Service
 
 
 class Storage(Service):
@@ -10,7 +10,7 @@ class Storage(Service):
 
     @classmethod
     def name(cls) -> str:
-        return "files"
+        return "storage"
 
     def start(self):
         """Ensure directories exist on start."""
