@@ -38,11 +38,14 @@ When sharing links, you'll need to connect to GitHub/GitLab/Radicle if you want
 a short URL like that one.
 
 
+### Identity
+
+Users are identified by a key. Services are signed by the user's key. When a
+vldmcp server comes online
 
 
 ### Permissions
 
-Permissions
 
 
 ### The CLI

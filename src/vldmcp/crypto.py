@@ -19,7 +19,6 @@ from __future__ import annotations
 
 import secrets
 from pathlib import Path
-from typing import Tuple
 
 from mnemonic import Mnemonic
 from nacl.signing import SigningKey
@@ -128,7 +127,7 @@ def key_from_mnemonic(mnemonic: str) -> bytes:
     return bytes(entropy)
 
 
-def generate_mnemonic_and_key() -> Tuple[str, bytes]:
+def generate_mnemonic_and_key() -> tuple[str, bytes]:
     """Generate a new 24-word mnemonic and its 32-byte key."""
     mnemonic = _MN.generate(strength=256)  # 24 words
     key = key_from_mnemonic(mnemonic)  # exact inverse path
@@ -140,7 +139,7 @@ def generate_mnemonic_and_key() -> Tuple[str, bytes]:
 # -------------------------------
 
 
-def ed25519_keypair_from_seed(seed32: bytes) -> Tuple[bytes, bytes]:
+def ed25519_keypair_from_seed(seed32: bytes) -> tuple[bytes, bytes]:
     """Return (public_key32, private_key64) from a 32-byte Ed25519 seed.
 
     Not needed for storage; useful for signing/tests.

@@ -21,7 +21,6 @@ from __future__ import annotations
 
 import secrets
 from pathlib import Path
-from typing import Tuple
 
 from mnemonic import Mnemonic
 
@@ -109,7 +108,7 @@ class CryptoService(Service):
 
         return entropy
 
-    def generate_mnemonic_and_key(self) -> Tuple[str, bytes]:
+    def generate_mnemonic_and_key(self) -> tuple[str, bytes]:
         """Generate a new mnemonic phrase and corresponding key.
 
         Returns:
@@ -277,7 +276,7 @@ def key_from_mnemonic(mnemonic: str) -> bytes:
     return get_crypto_service().key_from_mnemonic(mnemonic)
 
 
-def generate_mnemonic_and_key() -> Tuple[str, bytes]:
+def generate_mnemonic_and_key() -> tuple[str, bytes]:
     """Generate a new mnemonic phrase and corresponding key."""
     return get_crypto_service().generate_mnemonic_and_key()
 
