@@ -239,3 +239,29 @@ def test_async_context_safety():
     results = asyncio.run(run_test())
     # Both should get the last set context due to shared ContextVar
     assert len(results) == 2
+
+
+def test_expose_with_security_object():
+    """Test @expose with Security object instead of string."""
+    from vldmcp.models.call.security import Security, SecurityRule
+
+    security_obj = Security(rules=[SecurityRule(kind="role", value="admin", action="allow")])
+
+    class TestService:
+        @expose(security=security_obj)
+        async def secure_method(self) -> str:
+            return "secure"
+
+    service = TestService()
+
+    # Check that security is stored correctly
+    assert hasattr(service.secure_method, "_security")
+    assert hasattr(service.secure_method, "_security_obj")
+    assert service.secure_method._security_obj == security_obj
+    assert service.secure_method._security == str(security_obj)
+
+    async def run_test():
+        result = await service.secure_method()
+        assert result == "secure"
+
+    asyncio.run(run_test())
