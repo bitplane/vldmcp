@@ -1,4 +1,4 @@
-"""Identity service for managing claims and machine sync."""
+"""Claim service for managing generic cryptographic claims."""
 
 from typing import Any, Optional
 from datetime import datetime, UTC
@@ -9,12 +9,12 @@ from ..models.claim import Claim
 from ..models.machine import Machine
 
 
-class IDService(CRUDService):
-    """Service for managing identity claims and machine synchronization."""
+class ClaimService(CRUDService):
+    """Service for managing generic cryptographic claims and machine synchronization."""
 
     def __init__(self, storage: Storage, parent=None):
         # Initialize CRUD service with Claim and Machine models
-        super().__init__(storage, models=[Claim, Machine], parent=parent, name="id")
+        super().__init__(storage, models=[Claim, Machine], parent=parent, name="claim")
 
     def create_claim(self, payload_type: str, payload: dict[str, Any], signature: str, signer_pubkey: str) -> Claim:
         """Create a new generic claim.

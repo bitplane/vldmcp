@@ -1,11 +1,11 @@
-"""Tests for IDService."""
+"""Tests for ClaimService."""
 
 import pytest
 from datetime import datetime, UTC, timedelta
 from tempfile import TemporaryDirectory
 from pathlib import Path
 
-from vldmcp.service.id import IDService
+from vldmcp.service.claim import ClaimService
 from vldmcp.service.system.storage import Storage
 
 
@@ -20,8 +20,8 @@ def temp_storage():
 
 @pytest.fixture
 def id_service(temp_storage):
-    """Create an IDService with temporary storage."""
-    service = IDService(temp_storage)
+    """Create a ClaimService with temporary storage."""
+    service = ClaimService(temp_storage)
     # Clear any existing data for clean tests
     service.delete("claim")
     service.delete("machine")

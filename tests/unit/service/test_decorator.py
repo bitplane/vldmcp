@@ -25,13 +25,14 @@ def test_sync_method_raises_error():
                 return x * 2
 
 
-def test_context_injection_async():
-    """Test automatic context injection in async methods."""
+def test_context_access_async():
+    """Test context access in async methods via get_context()."""
 
     class TestService:
         @expose()
-        async def async_method_with_context(self, data: str, context: dict) -> dict:
-            return {"data": data, "user": context.get("user"), "role": context.get("role")}
+        async def async_method_with_context(self, data: str) -> dict:
+            context = get_context()
+            return {"data": data, "user": context.metadata.get("user"), "role": context.metadata.get("role")}
 
     service = TestService()
 
@@ -45,13 +46,14 @@ def test_context_injection_async():
     asyncio.run(run_test())
 
 
-def test_context_override():
-    """Test that explicitly passed context overrides automatic injection."""
+def test_context_update():
+    """Test that context can be updated and accessed."""
 
     class TestService:
         @expose()
-        async def method_with_context(self, context: dict) -> str:
-            return context.get("source", "unknown")
+        async def method_with_context(self) -> str:
+            context = get_context()
+            return context.metadata.get("source", "unknown")
 
     service = TestService()
 
@@ -59,32 +61,34 @@ def test_context_override():
         # Set global context
         set_context(source="global")
 
-        # Should use global context when not overridden
+        # Should use global context
         result = await service.method_with_context()
         assert result == "global"
 
-        # Should use explicitly passed context
-        result = await service.method_with_context(context={"source": "explicit"})
-        assert result == "explicit"
+        # Update context
+        set_context(source="updated")
+        result = await service.method_with_context()
+        assert result == "updated"
 
     asyncio.run(run_test())
 
 
 def test_share_decorator():
-    """Test @share decorator works with context injection."""
+    """Test @share decorator works with context access."""
 
     class TestService:
         @share
-        async def shared_method(self, value: int, context: dict) -> dict:
-            return {"value": value, "user": context.get("user")}
+        async def shared_method(self, value: int) -> dict:
+            context = get_context()
+            return {"value": value, "user": context.metadata.get("user")}
 
     service = TestService()
 
     # Check security level is set correctly
-    assert service.shared_method.__wrapped__._security == "peers"
+    assert service.shared_method.__wrapped__._security == "peer"
 
     async def run_test():
-        # Test context injection works
+        # Test context access works
         set_context(user="charlie")
         result = await service.shared_method(100)
         assert result == {"value": 100, "user": "charlie"}
@@ -97,8 +101,9 @@ def test_context_isolation():
 
     class TestService:
         @expose()
-        async def get_user(self, context: dict) -> str:
-            return context.get("user", "anonymous")
+        async def get_user(self) -> str:
+            context = get_context()
+            return context.metadata.get("user", "anonymous")
 
     service = TestService()
 
@@ -126,8 +131,14 @@ def test_context_accumulation():
 
     class TestService:
         @expose()
-        async def get_context_data(self, context: dict) -> dict:
-            return context
+        async def get_context_data(self) -> dict:
+            context = get_context()
+            # Return both proper fields and metadata
+            return {
+                "user": context.metadata.get("user"),
+                "role": context.metadata.get("role"),
+                "permissions": context.permissions if context.permissions else None,
+            }
 
     service = TestService()
 
@@ -135,9 +146,10 @@ def test_context_accumulation():
         # Set initial context
         set_context(user="alice")
         result = await service.get_context_data()
-        assert result == {"user": "alice"}
+        assert result == {"user": "alice", "role": None, "permissions": None}
 
         # Add more context data
+        # Note: permissions is a proper Context field, role and user go to metadata
         set_context(role="admin", permissions=["read", "write"])
         result = await service.get_context_data()
         assert result == {"user": "alice", "role": "admin", "permissions": ["read", "write"]}
@@ -148,17 +160,18 @@ def test_context_accumulation():
 def test_get_context_function():
     """Test get_context() function."""
     # Start with empty context
-    assert get_context() == {}
+    context = get_context()
+    assert context.metadata == {}
 
     # Set some context
     set_context(user="test", timestamp=12345)
     context = get_context()
-    assert context == {"user": "test", "timestamp": 12345}
+    assert context.metadata == {"user": "test", "timestamp": 12345}
 
     # Add more context
     set_context(action="test_action")
     context = get_context()
-    assert context == {"user": "test", "timestamp": 12345, "action": "test_action"}
+    assert context.metadata == {"user": "test", "timestamp": 12345, "action": "test_action"}
 
 
 def test_no_context_parameter():
@@ -186,7 +199,7 @@ def test_function_name_preserved():
 
     class TestService:
         @expose()
-        async def important_method(self, context: dict = None):
+        async def important_method(self):
             """This is an important method."""
             return "important"
 
@@ -202,9 +215,10 @@ def test_async_context_safety():
 
     class TestService:
         @expose()
-        async def async_method(self, delay: float, context: dict) -> str:
+        async def async_method(self, delay: float) -> str:
             await asyncio.sleep(delay)
-            return context.get("user", "unknown")
+            context = get_context()
+            return context.metadata.get("user", "unknown")
 
     service = TestService()
 

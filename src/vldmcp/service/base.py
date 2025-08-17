@@ -12,12 +12,16 @@ class Service:
         self.parent = parent
         self._running = False
         self.children = {}  # Child services this service hosts
+        self.exposed_methods = {}  # Registry of exposed methods
         self.name = name or self._get_name()
         self.path = self.name  # Path in service tree (can be made empty for merging)
 
         # Auto-register with parent if provided
         if parent:
             parent.children[self.name] = self
+
+        # Register exposed methods after initialization
+        self._register_exposed_methods()
 
     def _get_name(self) -> str:
         """Get the service name (derived from class name)."""
@@ -95,6 +99,44 @@ class Service:
                 parts.append(current.path)
             current = current.parent
         return "/" + "/".join(reversed(parts)) if parts else "/"
+
+    def _register_exposed_methods(self):
+        """Register all methods decorated with @expose or @share."""
+        for attr_name in dir(self):
+            attr = getattr(self, attr_name)
+            if callable(attr) and hasattr(attr, "_security"):
+                # This is an exposed method
+                method_path = f"{self.full_path()}/{attr_name}"
+                self.exposed_methods[attr_name] = {
+                    "method": attr,
+                    "security": attr._security,
+                    "path": method_path,
+                }
+
+                # Also register with root service if we have a parent
+                root = self._get_root()
+                if root and root != self:
+                    if not hasattr(root, "_all_exposed_methods"):
+                        root._all_exposed_methods = {}
+                    root._all_exposed_methods[method_path] = {
+                        "service": self,
+                        "method": attr,
+                        "security": attr._security,
+                    }
+
+    def _get_root(self):
+        """Get the root service in the tree."""
+        current = self
+        while current.parent:
+            current = current.parent
+        return current
+
+    def get_method(self, method_path: str):
+        """Get an exposed method by its full path."""
+        root = self._get_root()
+        if hasattr(root, "_all_exposed_methods"):
+            return root._all_exposed_methods.get(method_path)
+        return None
 
     def __add__(self, other):
         """Merge two services into a MergedService."""
