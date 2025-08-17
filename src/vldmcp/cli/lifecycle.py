@@ -4,8 +4,7 @@ import click
 
 from ..service.platform import get_platform
 from ..models.config import PLATFORM_TYPES
-from ..util.pprint import pprint_size
-from ..util.output import output_nested_dict
+from ..util.pprint import pprint_size, pprint_dict
 from ..util.paths import Paths
 
 
@@ -284,7 +283,7 @@ def du(human):
         usage_dict = _humanize_sizes(usage_dict)
 
     # Output as tab-separated
-    output_nested_dict(usage_dict)
+    pprint_dict(usage_dict, output_func=click.echo, tab_separated=True, filter_empty=True)
 
 
 def _humanize_sizes(d):

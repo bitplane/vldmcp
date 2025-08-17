@@ -35,17 +35,8 @@ def expose(security: Union[str, Security] = "owner"):
 
         @functools.wraps(func)
         async def async_wrapper(self, *args, **kwargs):
-            # Get current context from ContextVar
-            # context = request_context.get()
-
             # TODO: Add security validation here
-            # context = request_context.get()
-            # security_service = self._get_root().security  # Get SecurityService
-            # if not await security_service.validate_call(func._security_obj, context):
-            #     raise PermissionError(f"Access denied to {func.__name__}")
-
             # TODO: Add performance logging if enabled
-
             return await func(self, *args, **kwargs)
 
         return async_wrapper

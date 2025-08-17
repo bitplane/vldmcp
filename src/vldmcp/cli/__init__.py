@@ -6,7 +6,7 @@ from .. import __version__
 from .lifecycle import server
 from ..service.platform import get_platform
 from ..models.info import InfoResponse, ServerInfo
-from ..util.output import output_nested_dict
+from ..util.pprint import pprint_dict
 
 
 @click.group()
@@ -37,7 +37,7 @@ def info():
 
     # Output as nested dict (similar to du command)
     response_dict = response.model_dump(exclude_none=True, exclude_defaults=False)
-    output_nested_dict(response_dict)
+    pprint_dict(response_dict, output_func=click.echo, tab_separated=True, filter_empty=True)
 
 
 if __name__ == "__main__":

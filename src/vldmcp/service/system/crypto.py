@@ -17,8 +17,6 @@ This service provides:
 NOTE: Both `mnemonic` and `pynacl` are required dependencies.
 """
 
-from __future__ import annotations
-
 import secrets
 from pathlib import Path
 

@@ -26,46 +26,65 @@ def pprint_size(size_bytes: int) -> str:
     return f"{size:.1f}{units[-1]}"
 
 
-def pprint_dict(obj: dict | list, prefix: str = "") -> None:
+def pprint_dict(
+    obj: dict | list, prefix: str = "", output_func=None, tab_separated: bool = False, filter_empty: bool = False
+) -> None:
     """Pretty print a dictionary or list with dot notation for nested keys.
 
     Args:
         obj: Dictionary or list to pretty print
         prefix: Current key prefix for nested objects
+        output_func: Function to use for output (default: print, can be click.echo)
+        tab_separated: Use tab-separated format instead of colon format
+        filter_empty: Skip empty/zero values
     """
-    result = _format_dict(obj, prefix)
+    if output_func is None:
+        output_func = print
+
+    result = _format_dict(obj, prefix, tab_separated=tab_separated, filter_empty=filter_empty)
     for line in result:
-        print(line)
+        output_func(line)
 
 
-def _format_dict(obj: dict | list, prefix: str = "") -> list[str]:
+def _format_dict(
+    obj: dict | list, prefix: str = "", tab_separated: bool = False, filter_empty: bool = False
+) -> list[str]:
     """Format a dictionary or list for pretty printing.
 
     Args:
         obj: Object to format
         prefix: Current key prefix for nested objects
+        tab_separated: Use tab-separated format instead of colon format
+        filter_empty: Skip empty/zero values
 
     Returns:
         List of formatted strings
     """
     result = []
+    separator = "\t" if tab_separated else ": "
 
     if isinstance(obj, dict):
         for key, value in obj.items():
             new_prefix = f"{prefix}.{key}" if prefix else key
             if isinstance(value, dict):
-                result.extend(_format_dict(value, new_prefix))
+                result.extend(_format_dict(value, new_prefix, tab_separated=tab_separated, filter_empty=filter_empty))
             elif isinstance(value, list):
                 # Format lists inline
-                result.append(f"{new_prefix}: {_format_value(value)}")
+                formatted_value = _format_value(value)
+                if not filter_empty or (value and value != 0 and value != "0B"):
+                    result.append(f"{new_prefix}{separator}{formatted_value}")
             else:
-                result.append(f"{new_prefix}: {_format_value(value)}")
+                formatted_value = _format_value(value)
+                if not filter_empty or (value and value != 0 and value != "0B"):
+                    result.append(f"{new_prefix}{separator}{formatted_value}")
     elif isinstance(obj, list):
         for item in obj:
-            result.extend(_format_dict(item, prefix))
+            result.extend(_format_dict(item, prefix, tab_separated=tab_separated, filter_empty=filter_empty))
     else:
         if prefix:
-            result.append(f"{prefix}: {_format_value(obj)}")
+            formatted_value = _format_value(obj)
+            if not filter_empty or (obj and obj != 0 and obj != "0B"):
+                result.append(f"{prefix}{separator}{formatted_value}")
 
     return result
 
