@@ -66,6 +66,124 @@ make clean
   codebase.
 * And once again, it's important to remember: Don't use import in functions.
 
+## Architecture & Implementation Status
+
+### Client-Server Separation
+vldmcp uses a client-server model with cryptographic key separation for
+security:
+
+**Client Process (`vldmcp` CLI):**
+- Has access to user's private key (`~/.local/share/vldmcp/keys/user.key`)
+- Signs requests using user's key
+- Forwards signed requests to daemon via HTTP
+- Will run TUI that communicates with daemon
+- No direct P2P network access
+
+**Daemon Process (`vldmcpd` server):**
+- Runs in background (native Python or podman container)
+- Has its own daemon key (separate from user key)
+- Hosts HTTP API for client requests
+- Connects to Veilid P2P network
+- Verifies incoming requests using registered user public keys
+- Maintains permissions/authorization for known users
+- No access to user's private key
+
+### Service Tree Architecture
+The Service model provides composable, hierarchical components that can be
+proxied/replaced. Each service can host child services and expose methods with
+security decorators.
+
+**Key Service Components:**
+- `Service`: Base class with lifecycle, routing, and method exposure
+- `@expose(security="...")`: Decorator for exposing methods with permissions
+- `Context`: Request context with user identity, roles, groups
+- `Security`: Rules engine for permission evaluation
+- `Platform`: Root service that manages deployment environment
+
+**Current Service Tree (Client):**
+```
+Platform (root)
+├── Storage (file operations, paths)
+├── Config (configuration management)
+├── Crypto (key management)
+└── Daemon (process management)
+```
+
+**Planned Service Trees:**
+
+Client Tree:
+```
+Platform (root)
+├── Storage (user key path)
+├── Config
+├── Crypto (signs with user key)
+├── HTTPClient (sends signed requests)
+└── TUI (future)
+```
+
+Daemon Tree:
+```
+DaemonPlatform (root)
+├── Storage (daemon key path)
+├── Config
+├── Crypto (verifies/signs)
+├── HTTPServer (FastAPI)
+├── Security (permissions)
+├── IDService (user/key registry)
+├── CRUDService (persistence)
+└── VeilidService (P2P)
+```
+
+### Request Flow & Signing
+
+1. **JWT-Style Signing**: Custom format using existing `Context.to_jwt_payload()`
+   with added cryptographic signatures
+2. **Request Path**: User → CLI → HTTPClient.sign() → HTTP → HTTPServer.verify()
+   → Daemon services
+3. **Key Usage**:
+   - User key signs client requests
+   - Daemon key signs forwarded P2P requests
+   - Context determines which key to use
+
+### Permission Model (Already Implemented)
+- `Security` model with rules for user/group/role/path matching
+- `Context` carries user identity and permissions
+- Admin users can register keys and assign to groups
+- Default groups: admin, user (more can be added)
+
+### MCP Integration (Future)
+MCP servers will become Service nodes in the tree, running as isolated
+processes with stdin/stdout communication to the FastAPI service. This is not
+immediate priority.
+
+### Implementation Requirements
+
+**Required Components:**
+1. **HTTPClient Service**: Client-side service that signs requests with user key
+2. **HTTPServer Service**: Daemon-side FastAPI service with authentication
+3. **Daemon Root Service**: Separate Platform with daemon-specific storage paths
+4. **JWT Signing**: Extend SecurityService with real Ed25519 signatures
+5. **Key Registration API**: Admin endpoints to register user public keys
+
+**Needs Reshaping:**
+1. **Storage Service**: Need separate instances for client vs daemon paths
+2. **Platform Classes**: Need DaemonPlatform variant with different key paths
+3. **Security Service**: Add actual cryptographic operations (currently
+   placeholder)
+
+**Surplus/Defer:**
+1. **MCP Server Integration**: Not needed for initial HTTP API
+2. **Veilid Integration**: Can be added after HTTP API works
+3. **TUI**: Can be added after core client-server communication works
+
+### Next Implementation Steps
+1. Create HTTPServer service with FastAPI
+2. Create HTTPClient service with request signing
+3. Implement real JWT signing in SecurityService
+4. Create DaemonPlatform with separate storage paths
+5. Add key registration endpoints
+6. Test client-server communication
+
 ## todo
 
 I'll update `todo.md` with next steps while you are working. Keep the todo list
