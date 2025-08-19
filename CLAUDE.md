@@ -51,6 +51,9 @@ make clean
 
 ### Testing
 
+* Do not run `python -m pytest`. This must be authorized each run. Use
+  `make test` or `./scripts/test.sh` which can actually be executed without
+  bugging the user.
 * Use `pytest` functional style for tests. No `TestClassBasedTestBSThanks`
 * When there's a bug, write a test case for the component.
 * Failing tests are good tests; they tested something. Don't write tests to

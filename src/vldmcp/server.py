@@ -10,6 +10,7 @@ import time
 
 from .service.system.storage import Storage
 from .service.system.crypto import CryptoService
+from .util.paths import Paths
 
 
 def main():
@@ -32,10 +33,10 @@ def main():
 
     try:
         print(f"vldmcp server starting (PID: {os.getpid()})...")
-        print(f"Config: {file_service.config_dir()}")
-        print(f"Data: {file_service.data_dir()}")
-        print(f"State: {file_service.state_dir()}")
-        print(f"Cache: {file_service.cache_dir()}")
+        print(f"Config: {Paths.CONFIG}")
+        print(f"Data: {Paths.DATA}")
+        print(f"State: {Paths.STATE}")
+        print(f"Cache: {Paths.CACHE}")
 
         # Server implementation placeholder - replace with actual MCP server implementation
         print("Server daemon running. Press Ctrl+C to stop.")

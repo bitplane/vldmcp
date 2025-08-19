@@ -10,7 +10,7 @@ class NativePlatform(Platform):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        DaemonService(["vldmcpd"], self)
+        self.daemon = DaemonService(["vldmcpd"], self.storage.pid_file_path(), None, self)
 
     def build(self, force: bool = False) -> bool:
         """No build needed for native."""
