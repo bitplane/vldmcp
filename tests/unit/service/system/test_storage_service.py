@@ -1,7 +1,6 @@
 """Tests for Storage service."""
 
 import pytest
-import sqlite3
 from tempfile import TemporaryDirectory
 from pathlib import Path
 from unittest.mock import patch
@@ -31,6 +30,9 @@ def temp_storage():
             storage = Storage()
             storage._temp_path = temp_path  # Store for test access
             yield storage
+
+            # Clean up any database connections
+            storage.stop()
 
 
 def test_storage_initialization(temp_storage):
@@ -167,94 +169,6 @@ def test_file_checks(temp_storage):
     assert temp_storage.is_dir(dir_path)
 
 
-def test_create_database_new(temp_storage):
-    """Test creating a new database with schema."""
-    temp_storage.start()
-
-    schema = """
-    CREATE TABLE users (
-        id INTEGER PRIMARY KEY,
-        name TEXT NOT NULL,
-        email TEXT UNIQUE
-    );
-    """
-
-    # Create new database
-    conn = temp_storage.create_database("test_db", schema)
-
-    # Test the database
-    cursor = conn.cursor()
-    cursor.execute("INSERT INTO users (name, email) VALUES (?, ?)", ("Test User", "test@example.com"))
-    conn.commit()
-
-    cursor.execute("SELECT * FROM users WHERE name = ?", ("Test User",))
-    row = cursor.fetchone()
-    assert row is not None
-    assert row["name"] == "Test User"
-    assert row["email"] == "test@example.com"
-
-    conn.close()
-
-    # Check database file exists
-    db_path = temp_storage.database_path("test_db")
-    assert temp_storage.exists(db_path)
-
-
-def test_create_database_existing(temp_storage):
-    """Test opening an existing database."""
-    temp_storage.start()
-
-    # Create database first
-    schema = "CREATE TABLE test (id INTEGER);"
-    conn1 = temp_storage.create_database("existing_db", schema)
-    conn1.execute("INSERT INTO test (id) VALUES (1)")
-    conn1.commit()
-    conn1.close()
-
-    # Open existing database (should not execute schema again)
-    conn2 = temp_storage.create_database("existing_db", "CREATE TABLE should_not_exist (x INTEGER);")
-
-    # Check original table exists
-    cursor = conn2.cursor()
-    cursor.execute("SELECT * FROM test")
-    rows = cursor.fetchall()
-    assert len(rows) == 1
-    assert rows[0]["id"] == 1
-
-    # Check new table was not created
-    with pytest.raises(sqlite3.OperationalError):
-        cursor.execute("SELECT * FROM should_not_exist")
-
-    conn2.close()
-
-
-def test_get_database_existing(temp_storage):
-    """Test getting connection to existing database."""
-    temp_storage.start()
-
-    # Create database first
-    conn1 = temp_storage.create_database("get_test", "CREATE TABLE data (value TEXT);")
-    conn1.execute("INSERT INTO data (value) VALUES ('test_value')")
-    conn1.commit()
-    conn1.close()
-
-    # Get existing database
-    conn2 = temp_storage.get_database("get_test")
-    cursor = conn2.cursor()
-    cursor.execute("SELECT value FROM data")
-    row = cursor.fetchone()
-    assert row["value"] == "test_value"
-    conn2.close()
-
-
-def test_get_database_nonexistent(temp_storage):
-    """Test getting connection to nonexistent database."""
-    temp_storage.start()
-
-    with pytest.raises(FileNotFoundError):
-        temp_storage.get_database("nonexistent_db")
-
-
 def test_create_directories_creates_all_paths(temp_storage):
     """Test that create_directories creates all required paths."""
     # Don't start() to test create_directories independently
@@ -314,24 +228,6 @@ def test_storage_service_lifecycle(temp_storage):
     temp_storage.stop()
     assert not temp_storage._running
     assert temp_storage.status() == "stopped"
-
-
-def test_database_with_context_manager(temp_storage):
-    """Test database operations with context manager pattern."""
-    temp_storage.start()
-
-    schema = "CREATE TABLE context_test (id INTEGER, value TEXT);"
-
-    # Create and use database
-    with temp_storage.create_database("context_test", schema) as conn:
-        conn.execute("INSERT INTO context_test (id, value) VALUES (?, ?)", (1, "test"))
-        conn.commit()
-
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM context_test")
-        rows = cursor.fetchall()
-        assert len(rows) == 1
-        assert rows[0]["value"] == "test"
 
 
 def test_secure_permissions_called_on_start(temp_storage):

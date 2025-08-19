@@ -34,6 +34,13 @@ class CRUDService(Service):
         # Create all tables
         SQLModel.metadata.create_all(self.engine)
 
+    def stop(self):
+        """Stop the CRUD service and dispose of database engine."""
+        # Dispose of SQLAlchemy engine to close all connections
+        if hasattr(self, "engine") and self.engine:
+            self.engine.dispose()
+        super().stop()
+
     def get_session(self) -> Session:
         """Get a database session."""
         return Session(self.engine)

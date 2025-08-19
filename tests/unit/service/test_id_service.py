@@ -25,7 +25,9 @@ def id_service(temp_storage):
     # Clear any existing data for clean tests
     service.delete("claim")
     service.delete("machine")
-    return service
+    yield service
+    # Clean up engine connections
+    service.stop()
 
 
 def test_create_claim(id_service):

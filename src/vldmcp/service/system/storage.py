@@ -1,6 +1,5 @@
 """File system service for vldmcp."""
 
-import sqlite3
 from pathlib import Path
 from ..base import Service
 from ...util.paths import Paths
@@ -111,53 +110,6 @@ class Storage(Service):
     def is_dir(self, path: Path) -> bool:
         """Check if a path is a directory."""
         return path.is_dir()
-
-    # Database operations
-    def create_database(self, name: str, schema: str | None = None) -> sqlite3.Connection:
-        """Create or open a SQLite database.
-
-        Args:
-            name: Database name (without .db extension)
-            schema: Optional SQL schema to execute on new database
-
-        Returns:
-            SQLite connection object
-        """
-        db_path = self.database_path(name)
-        db_path.parent.mkdir(parents=True, exist_ok=True)
-
-        # Check if database is new
-        is_new = not db_path.exists()
-
-        conn = sqlite3.connect(db_path)
-        conn.row_factory = sqlite3.Row  # Enable dict-like access
-
-        # Execute schema if database is new and schema provided
-        if is_new and schema:
-            conn.executescript(schema)
-            conn.commit()
-
-        return conn
-
-    def get_database(self, name: str) -> sqlite3.Connection:
-        """Get connection to existing database.
-
-        Args:
-            name: Database name (without .db extension)
-
-        Returns:
-            SQLite connection object
-
-        Raises:
-            FileNotFoundError: If database doesn't exist
-        """
-        db_path = self.database_path(name)
-        if not db_path.exists():
-            raise FileNotFoundError(f"Database not found: {db_path}")
-
-        conn = sqlite3.connect(db_path)
-        conn.row_factory = sqlite3.Row
-        return conn
 
     # Directory management
     def create_directories(self) -> None:

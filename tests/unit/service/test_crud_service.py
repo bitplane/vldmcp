@@ -37,7 +37,9 @@ def crud_service(temp_storage):
     service = CRUDService(temp_storage, models=[CrudTestModel])
     # Clear any existing data for clean tests
     service.delete("crudtestmodel")
-    return service
+    yield service
+    # Clean up engine connections
+    service.stop()
 
 
 def test_create_record(crud_service):
@@ -188,5 +190,8 @@ def test_get_records_since_no_updated_at():
         storage._data_home = Path(temp_dir)
         crud_service = CRUDService(storage, models=[NoTimestampModel])
 
-        with pytest.raises(ValueError, match="does not have updated_at field"):
-            crud_service.get_records_since("notimestampmodel", datetime.now(UTC))
+        try:
+            with pytest.raises(ValueError, match="does not have updated_at field"):
+                crud_service.get_records_since("notimestampmodel", datetime.now(UTC))
+        finally:
+            crud_service.stop()
